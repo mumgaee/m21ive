@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그림 라이브</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f9f9f9;--surface:#ffffff;--surface2:#f2f2f2;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text:#0f0f0f;--text2:#606060;--text3:#aaaaaa;
+  --accent:#ff0000;--accent2:#065fd4;
+  --red:#cc0000;--sub-btn:#606060;
+}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── TOPBAR ── */
+#topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;}
+#yt-logo{display:flex;align-items:center;gap:5px;font-size:20px;font-weight:900;color:var(--text);letter-spacing:-0.5px;}
+#yt-logo-icon{width:28px;height:20px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center;}
+#yt-logo-icon::after{content:'';border-left:10px solid white;border-top:6px solid transparent;border-bottom:6px solid transparent;}
+#topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+#timer-wrap{display:flex;align-items:center;gap:5px;background:#f2f2f2;padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
+#live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+#timer-display{font-size:12px;font-weight:700;color:var(--text2);font-family:monospace;letter-spacing:0.5px;}
+
+/* ── MAIN LAYOUT ── */
+#main{flex:1;display:flex;overflow:hidden;background:var(--bg);}
+
+/* ── VIDEO PANEL ── */
+#video-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;background:var(--bg);}
+#video-area{flex:1;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#video-el{width:100%;height:100%;object-fit:contain;display:none;}
+#placeholder{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:40px;background:#000;width:100%;height:100%;justify-content:center;}
+#placeholder-icon{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:30px;}
+#placeholder h3{font-size:16px;font-weight:500;color:#aaa;}
+#placeholder p{font-size:13px;color:#666;line-height:1.7;max-width:260px;}
+#share-btn{height:40px;padding:0 24px;background:var(--accent);border:none;border-radius:20px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:-0.2px;}
+#share-btn:hover{background:#cc0000;}
+#stop-btn{position:absolute;top:12px;right:12px;display:none;align-items:center;gap:6px;height:30px;padding:0 14px;background:rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:white;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+#stop-btn.show{display:flex;}
+#live-badge{position:absolute;top:12px;left:12px;background:var(--accent);color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;display:none;letter-spacing:0.5px;}
+#live-badge.show{display:block;}
+#video-donation-layer{position:absolute;top:16px;left:16px;right:auto;bottom:auto;transform:none;width:min(420px,calc(100% - 32px));max-width:420px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;pointer-events:none;z-index:20;}
+
+/* ── VIDEO FOOTER (유튜브 영상 아래 정보) ── */
+#video-footer{padding:14px 18px 10px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+#vf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+#v-title{font-size:15px;font-weight:700;color:var(--text);line-height:1.4;flex:1;}
+#vf-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.vf-btn{height:34px;padding:0 14px;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:5px;transition:background .15s;}
+#like-btn{background:#f2f2f2;color:var(--text);border:1px solid var(--border);}
+#like-btn:hover{background:#e5e5e5;}
+#like-btn.liked{background:#065fd4;color:white;border-color:#065fd4;}
+#dislike-btn{background:#f2f2f2;color:var(--text);border:1px solid var(--border);padding:0 12px;}
+#dislike-btn:hover{background:#e5e5e5;}
+#share-vf-btn{background:#f2f2f2;color:var(--text);border:1px solid var(--border);}
+#share-vf-btn:hover{background:#e5e5e5;}
+#vf-channel{display:flex;align-items:center;gap:10px;margin-top:10px;}
+#channel-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ff6b6b,#ffa500);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:white;flex-shrink:0;}
+#channel-info{flex:1;}
+#channel-name{font-size:13px;font-weight:700;color:var(--text);}
+#channel-sub-count{font-size:12px;color:var(--text2);}
+#sub-btn{height:32px;padding:0 16px;background:var(--text);color:white;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s;white-space:nowrap;}
+#sub-btn:hover{background:#333;}
+#sub-btn.subscribed{background:#f2f2f2;color:var(--text2);border:1px solid var(--border);}
+#sub-btn.subscribed:hover{background:#e5e5e5;}
+#v-meta{font-size:12px;color:var(--text2);margin-top:4px;}
+
+/* ── CHAT PANEL ── */
+#chat-panel{width:360px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+#chat-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#chat-header-title{font-size:13px;font-weight:700;color:var(--text);}
+#viewer-pill{font-size:11px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;border:1px solid var(--border);}
+#v-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);}
+#messages{flex:1;overflow-y:auto;padding:6px 4px;}
+#messages::-webkit-scrollbar{width:4px;}
+#messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* ── CHAT MSG ── */
+.msg{padding:4px 12px;border-radius:3px;font-size:13px;line-height:1.5;animation:fadeUp 0.2s ease;display:flex;flex-wrap:wrap;gap:0 6px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msg:hover{background:var(--surface2);}
+.nick{font-weight:700;white-space:nowrap;flex-shrink:0;}
+.txt{color:var(--text);word-break:break-all;}
+.msg.system .nick,.msg.system .txt{color:var(--text3);font-style:italic;font-size:11px;}
+.msg.me .nick{color:#065fd4;}
+.typing-row{padding:4px 12px;display:flex;align-items:center;gap:7px;font-size:11px;}
+.typing-name{color:var(--text3);}
+.dots{display:flex;gap:3px;}
+.dots span{width:4px;height:4px;border-radius:50%;background:var(--text3);animation:db 0.9s infinite;}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes db{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+/* ── ACHIEVEMENT ── */
+.achievement-msg{margin:4px 8px;padding:6px 12px;background:rgba(6,95,212,0.06);border-left:3px solid #065fd4;border-radius:4px;font-size:11.5px;color:#065fd4;animation:fadeUp 0.3s ease;}
+.notice-msg{margin:4px 8px;padding:6px 12px;background:rgba(0,0,0,0.04);border-left:3px solid #aaa;border-radius:4px;font-size:11.5px;color:#606060;animation:fadeUp 0.3s ease;}
+.sub-alert{margin:5px 8px;padding:8px 12px;background:linear-gradient(90deg,rgba(255,0,0,0.06),rgba(255,0,0,0.02));border-left:3px solid var(--accent);border-radius:4px;font-size:12px;font-weight:700;color:var(--accent);animation:fadeUp 0.3s ease;}
+.enter-msg{padding:2px 12px;font-size:11px;color:var(--text3);animation:fadeUp 0.2s ease;}
+
+/* ── SUPER CHAT ── */
+.video-donation-toast{border-radius:14px;padding:12px 16px;color:white;max-width:420px;width:100%;animation:donationToast 4.2s ease forwards;box-shadow:0 4px 20px rgba(0,0,0,0.25);}
+@keyframes donationToast{0%{opacity:0;transform:translateY(20px)}8%{opacity:1;transform:translateY(0)}85%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+.video-donation-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.video-donation-name{font-size:13px;font-weight:800;}
+.video-donation-amount{font-size:17px;font-weight:900;}
+.video-donation-msg{margin-top:6px;font-size:14px;line-height:1.45;word-break:break-word;}
+.video-donation-toast.tier-blue{background:linear-gradient(135deg,rgba(29,78,216,0.96),rgba(30,64,175,0.92));border:1px solid rgba(147,197,253,0.4);}
+.video-donation-toast.tier-cyan{background:linear-gradient(135deg,rgba(8,145,178,0.96),rgba(14,116,144,0.92));border:1px solid rgba(103,232,249,0.4);}
+.video-donation-toast.tier-green{background:linear-gradient(135deg,rgba(22,163,74,0.96),rgba(21,128,61,0.92));border:1px solid rgba(134,239,172,0.4);}
+.video-donation-toast.tier-yellow{background:linear-gradient(135deg,rgba(202,138,4,0.97),rgba(234,88,12,0.92));border:1px solid rgba(253,224,71,0.4);}
+.video-donation-toast.tier-orange{background:linear-gradient(135deg,rgba(234,88,12,0.97),rgba(220,38,38,0.92));border:1px solid rgba(253,186,116,0.4);}
+.video-donation-toast.tier-pink{background:linear-gradient(135deg,rgba(190,24,93,0.97),rgba(126,34,206,0.93));border:1px solid rgba(244,114,182,0.4);}
+.video-donation-toast.tier-red{background:linear-gradient(135deg,rgba(220,38,38,0.98),rgba(127,29,29,0.95));border:1px solid rgba(252,165,165,0.4);box-shadow:0 0 0 1px rgba(255,255,255,0.06),0 18px 40px rgba(127,29,29,0.3);}
+.chat-donation-card{margin:5px 8px;padding:9px 12px;border-radius:8px;animation:fadeUp 0.3s ease;}
+.chat-donation-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.chat-donation-name{font-size:11px;font-weight:800;}
+.chat-donation-amount{font-size:12px;font-weight:900;}
+.chat-donation-msg{margin-top:5px;font-size:12.5px;word-break:break-word;}
+.chat-donation-card.tier-blue{background:rgba(29,78,216,0.08);border-left:3px solid #60a5fa;color:#1e40af;}
+.chat-donation-card.tier-cyan{background:rgba(8,145,178,0.08);border-left:3px solid #67e8f9;color:#0e7490;}
+.chat-donation-card.tier-green{background:rgba(22,163,74,0.08);border-left:3px solid #86efac;color:#166534;}
+.chat-donation-card.tier-yellow{background:rgba(202,138,4,0.08);border-left:3px solid #fde047;color:#854d0e;}
+.chat-donation-card.tier-orange{background:rgba(234,88,12,0.08);border-left:3px solid #fdba74;color:#9a3412;}
+.chat-donation-card.tier-pink{background:rgba(190,24,93,0.08);border-left:3px solid #f9a8d4;color:#9d174d;}
+.chat-donation-card.tier-red{background:rgba(220,38,38,0.09);border-left:3px solid #fca5a5;color:#991b1b;}
+
+/* ── INPUT AREA ── */
+#nick-area{padding:6px 12px 0;display:flex;align-items:center;gap:6px;}
+#nick-input{width:80px;height:26px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:0 8px;font-size:12px;color:#065fd4;outline:none;font-family:inherit;font-weight:700;}
+#input-area{padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0;}
+#input-wrap{display:flex;gap:5px;align-items:center;background:var(--surface2);border:1.5px solid var(--border2);border-radius:24px;padding:0 6px 0 14px;transition:border-color .15s;}
+#input-wrap:focus-within{border-color:var(--border2);}
+#chat-input{flex:1;height:38px;background:transparent;border:none;outline:none;font-size:13px;color:var(--text);font-family:'Noto Sans KR',sans-serif;}
+#chat-input::placeholder{color:var(--text3);}
+.action-btn{width:30px;height:30px;border:none;background:transparent;cursor:pointer;font-size:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .1s;}
+.action-btn:hover{background:var(--border);}
+#send-btn{display:none;}
+
+
+/* ── EMOJI PICKER ── */
+#emoji-picker{position:absolute;bottom:54px;right:8px;background:white;border:1px solid var(--border2);border-radius:12px;padding:10px;display:none;flex-wrap:wrap;gap:4px;width:200px;box-shadow:0 4px 20px rgba(0,0,0,0.12);z-index:100;}
+#emoji-picker.show{display:flex;}
+#emoji-picker span{cursor:pointer;font-size:20px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;}
+#emoji-picker span:hover{background:var(--surface2);}
+
+/* ── HEART ── */
+#heart-layer{position:fixed;bottom:80px;right:370px;width:60px;pointer-events:none;z-index:999;}
+.heart-float{position:absolute;bottom:0;left:50%;font-size:22px;animation:heartFloat 1.8s ease forwards;pointer-events:none;}
+@keyframes heartFloat{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}100%{opacity:0;transform:translateX(calc(-50% + var(--dx,0px))) translateY(-120px) scale(0.6)}}
+#heart-counter{position:absolute;right:10px;bottom:14px;min-width:44px;height:22px;padding:0 8px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;color:white;background:rgba(236,72,153,0.18);border:1px solid rgba(244,114,182,0.3);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;z-index:16;}
+#heart-counter.show{opacity:1;transform:translateY(0);}
+
+/* ── DONATION MODAL ── */
+#donation-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(2px);}
+#donation-modal.show{display:flex;}
+#donation-card{background:white;border-radius:16px;padding:24px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.18);}
+#donation-card h3{font-size:16px;font-weight:700;margin-bottom:5px;color:var(--text);}
+#donation-card p{font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.5;}
+.donation-field{margin-bottom:12px;}
+.donation-field label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;}
+.donation-field input,.donation-field textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:'Noto Sans KR',sans-serif;outline:none;}
+.donation-field textarea{resize:none;min-height:72px;}
+.donation-tier-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px;margin-bottom:10px;}
+.tier-chip{border:1.5px solid var(--border2);border-radius:10px;padding:7px 4px;background:var(--surface2);color:var(--text2);cursor:pointer;font:inherit;font-size:11px;font-weight:700;transition:all .12s;}
+.tier-chip:hover{transform:translateY(-1px);}
+.tier-chip.blue{background:rgba(29,78,216,0.08);border-color:rgba(96,165,250,0.4);color:#1d4ed8;}
+.tier-chip.cyan{background:rgba(8,145,178,0.08);border-color:rgba(103,232,249,0.4);color:#0e7490;}
+.tier-chip.green{background:rgba(22,163,74,0.08);border-color:rgba(134,239,172,0.4);color:#166534;}
+.tier-chip.yellow{background:rgba(202,138,4,0.1);border-color:rgba(253,224,71,0.5);color:#854d0e;}
+.tier-chip.orange{background:rgba(234,88,12,0.08);border-color:rgba(253,186,116,0.4);color:#9a3412;}
+.tier-chip.pink{background:rgba(190,24,93,0.08);border-color:rgba(244,114,182,0.4);color:#9d174d;}
+.tier-chip.red{background:rgba(220,38,38,0.08);border-color:rgba(252,165,165,0.4);color:#991b1b;}
+#donation-preview{margin-top:10px;border-radius:12px;padding:11px 14px;color:white;background:linear-gradient(135deg,rgba(29,78,216,0.96),rgba(30,64,175,0.92));}
+#donation-preview .preview-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+#donation-preview .preview-name{font-size:13px;font-weight:800;}
+#donation-preview .preview-amount{font-size:15px;font-weight:900;}
+#donation-preview .preview-msg{margin-top:7px;font-size:13px;line-height:1.4;opacity:0.96;}
+#donation-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+#donation-cancel,#donation-submit{height:36px;padding:0 18px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;border:none;}
+#donation-cancel{background:var(--surface2);color:var(--text2);}
+#donation-submit{background:linear-gradient(90deg,#fbbf24,#fb923c);color:#111;}
+#donation-cancel:hover{background:var(--border2);}
+
+/* ── 마일스톤 오버레이 ── */
+#milestone-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.0);display:none;align-items:center;justify-content:center;z-index:500;pointer-events:none;}
+#milestone-overlay.show{display:flex;}
+#milestone-box{text-align:center;animation:milestoneIn 0.5s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes milestoneIn{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}
+#milestone-emoji{font-size:72px;display:block;animation:milestoneEmoji 0.6s ease 0.2s both;}
+@keyframes milestoneEmoji{0%{transform:rotate(-20deg) scale(0)}100%{transform:rotate(0) scale(1)}}
+#milestone-text{font-size:32px;font-weight:900;color:white;text-shadow:0 2px 20px rgba(0,0,0,0.4);margin-top:8px;line-height:1.2;}
+#milestone-sub{font-size:16px;color:rgba(255,255,255,0.85);margin-top:6px;}
+
+/* ── 컨페티 ── */
+.confetti-piece{position:fixed;width:10px;height:10px;border-radius:2px;pointer-events:none;z-index:499;animation:confettiFall var(--dur,2s) ease var(--delay,0s) forwards;}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg) translateX(0);opacity:1;}100%{transform:translateY(100vh) rotate(720deg) translateX(var(--dx,0px));opacity:0;}}
+
+/* ── 알림 토스트 ── */
+#toast-layer{position:fixed;top:70px;left:16px;right:auto;display:flex;flex-direction:column;gap:8px;z-index:300;pointer-events:none;max-width:320px;}
+.toast-item{background:white;border:1px solid var(--border2);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);animation:toastIn 0.3s ease;opacity:1;transition:opacity 0.3s,transform 0.3s;}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.toast-item.out{opacity:0;transform:translateX(40px);}
+.toast-icon{font-size:16px;flex-shrink:0;}
+
+/* ── 랜덤 이벤트 배너 ── */
+#event-banner{position:absolute;top:0;left:0;right:0;height:36px;display:none;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;z-index:30;letter-spacing:-0.2px;}
+#event-banner.show{display:flex;animation:bannerIn 0.4s ease;}
+@keyframes bannerIn{from{opacity:0;transform:translateY(-36px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── 시청자 그래프 ── */
+#viewer-graph{position:absolute;bottom:50px;left:12px;background:rgba(0,0,0,0.6);border-radius:8px;padding:6px 10px;display:none;flex-direction:column;gap:3px;z-index:15;}
+#viewer-graph.show{display:flex;}
+#graph-label{font-size:10px;color:rgba(255,255,255,0.6);font-weight:600;letter-spacing:0.3px;}
+#graph-canvas{width:100px;height:30px;}
+
+/* ── 채팅 폭발 모드 ── */
+#messages.burst .msg{animation:msgBurst 0.1s ease!important;}
+@keyframes msgBurst{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── 뱃지 ── */
+.badge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;font-size:10px;margin-right:3px;flex-shrink:0;vertical-align:middle;}
+
+/* ── 특별 입장 ── */
+.vip-enter{margin:6px 8px;padding:8px 12px;background:linear-gradient(90deg,rgba(255,215,0,0.1),rgba(255,165,0,0.05));border-left:3px solid gold;border-radius:4px;font-size:12px;font-weight:700;color:#b45309;animation:fadeUp 0.3s ease;}
+
+/* ── 비밀번호 입장 ── */
+#password-gate{position:fixed;inset:0;background:linear-gradient(180deg,#0f0f12,#17171c);display:flex;align-items:center;justify-content:center;z-index:5000;padding:20px;}
+#password-card{width:min(420px,92vw);background:rgba(255,255,255,0.96);border:1px solid rgba(255,255,255,0.5);border-radius:24px;box-shadow:0 18px 60px rgba(0,0,0,0.35);padding:28px;}
+#password-card h2{font-size:22px;font-weight:900;color:#111;margin-bottom:8px;letter-spacing:-0.3px;}
+#password-card p{font-size:13px;color:#606060;line-height:1.6;margin-bottom:14px;}
+#password-form{display:flex;flex-direction:column;gap:10px;}
+#password-input{width:100%;height:44px;border-radius:12px;border:1px solid var(--border2);background:#f5f5f5;padding:0 14px;font-size:14px;outline:none;font-family:inherit;}
+#password-submit{height:42px;border:none;border-radius:999px;background:#111;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+#password-submit:hover{background:#222;}
+#password-error{min-height:18px;font-size:12px;color:#cc0000;}
+body.locked{overflow:hidden;}
+body.locked #main, body.locked #topbar, body.locked #milestone-overlay, body.locked #toast-layer, body.locked #donation-modal{filter:blur(3px);pointer-events:none;user-select:none;}
+
+</style>
+</head>
+<body class="locked">
+
+<div id="password-gate">
+  <div id="password-card">
+    <h2>입장 비밀번호</h2>
+    <p>공유받은 비밀번호를 입력해주세요.</p>
+    <form id="password-form">
+      <input id="password-input" type="password" placeholder="비밀번호 입력" autocomplete="current-password" />
+      <button id="password-submit" type="submit">입장하기</button>
+      <div id="password-error"></div>
+    </form>
+  </div>
+</div>
+
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div id="yt-logo">
+    <div id="yt-logo-icon"></div>
+    그림라이브
+  </div>
+  <div id="topbar-right">
+    <div id="timer-wrap">
+      <div id="live-dot"></div>
+      <span id="timer-display">00:00:00</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- VIDEO -->
+  <div id="video-panel">
+    <div id="video-area">
+      <video id="video-el" autoplay muted></video>
+      <div id="placeholder">
+        <div id="placeholder-icon">🎨</div>
+        <h3>그림 화면을 공유해주세요</h3>
+        <p>화면 공유 버튼을 누르고<br>그림 작업 탭을 선택하세요</p>
+        <button id="share-btn">▶ 방송 시작하기</button>
+      </div>
+      <button id="stop-btn"><span style="width:6px;height:6px;border-radius:50%;background:#fff;display:inline-block;margin-right:4px"></span>방송 종료</button>
+      <div id="live-badge">● LIVE</div>
+      <div id="event-banner"></div>
+      <div id="viewer-graph"><div id="graph-label">LIVE 시청자</div><canvas id="graph-canvas"></canvas></div>
+      <div id="video-donation-layer"></div>
+    </div>
+
+    <!-- 유튜브 영상 하단 정보 -->
+    <div id="video-footer">
+      <div id="vf-top">
+        <div id="v-title" contenteditable="true" title="클릭해서 제목 수정">✏️ 그림 라이브 방송 중 — 클릭해서 제목 수정</div>
+        <div id="vf-actions">
+          <button class="vf-btn" id="like-btn" onclick="toggleLike()">
+            <span id="like-icon">👍</span>
+            <span id="like-count">0</span>
+          </button>
+          <button class="vf-btn" id="dislike-btn">👎</button>
+          <button class="vf-btn" id="share-vf-btn" onclick="document.getElementById('share-btn').click()">🔗 공유</button>
+        </div>
+      </div>
+      <div id="v-meta"><span id="view-count">시청자 0명</span> · 지금 방송 중</div>
+      <div id="vf-channel">
+        <div id="channel-avatar">나</div>
+        <div id="channel-info">
+          <div id="channel-name" contenteditable="true" title="클릭해서 채널명 수정">내 채널 이름</div>
+          <div id="channel-sub-count">구독자 <span id="sub-count">0</span>명</div>
+        </div>
+        <button id="sub-btn" onclick="toggleSub()">구독</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat-panel">
+    <div id="chat-header">
+      <div id="chat-header-title">실시간 채팅</div>
+      <div id="viewer-pill"><div id="v-dot"></div><span id="vc">0명 시청중</span></div>
+    </div>
+    <div id="messages"></div>
+    <div id="nick-area">
+      <span style="font-size:11px;color:var(--text3);white-space:nowrap">내 닉네임</span>
+      <input id="nick-input" value="나" maxlength="12" />
+      <span style="font-size:11px;color:var(--text3)">으로 채팅</span>
+    </div>
+    <div id="input-area">
+      <div id="input-wrap" style="position:relative;">
+        <input id="chat-input" placeholder="채팅 입력..." maxlength="80" />
+        <button class="action-btn" id="emoji-btn" title="이모지">😊</button>
+        <button class="action-btn" id="heart-btn" title="하트">❤️</button>
+        <button class="action-btn" id="donate-btn" title="슈퍼챗">💰</button>
+        <div id="emoji-picker"></div>
+        <div id="heart-layer"></div>
+        <div id="heart-counter">❤️ <span id="heart-count-num">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 마일스톤 오버레이 -->
+<div id="milestone-overlay">
+  <div id="milestone-box">
+    <span id="milestone-emoji">🎉</span>
+    <div id="milestone-text">구독자 100명!</div>
+    <div id="milestone-sub">함께해줘서 고마워요 ❤️</div>
+  </div>
+</div>
+
+<!-- 알림 토스트 레이어 -->
+<div id="toast-layer"></div>
+
+<!-- DONATION MODAL -->
+<div id="donation-modal">
+  <div id="donation-card">
+    <h3>슈퍼챗 보내기 💰</h3>
+    <p>금액에 따라 채팅창 색이 바뀌고, 화면 위에 잠깐 떠요!</p>
+    <div class="donation-field">
+      <label>빠른 금액 선택</label>
+      <div class="donation-tier-row">
+        <button type="button" class="tier-chip blue" data-amount="1000">₩1천</button>
+        <button type="button" class="tier-chip cyan" data-amount="3000">₩3천</button>
+        <button type="button" class="tier-chip green" data-amount="5000">₩5천</button>
+        <button type="button" class="tier-chip yellow" data-amount="10000">₩1만</button>
+        <button type="button" class="tier-chip orange" data-amount="30000">₩3만</button>
+        <button type="button" class="tier-chip pink" data-amount="50000">₩5만</button>
+        <button type="button" class="tier-chip red" data-amount="100000">₩10만</button>
+      </div>
+    </div>
+    <div class="donation-field">
+      <label>후원 금액 (원)</label>
+      <input id="donation-amount-input" type="number" min="100" step="100" value="1000" />
+    </div>
+    <div class="donation-field">
+      <label>메시지</label>
+      <textarea id="donation-message-input" maxlength="80" placeholder="방송 너무 재밌어요!"></textarea>
+    </div>
+    <div id="donation-preview">
+      <div class="preview-top"><span class="preview-name">★ 나</span><span class="preview-amount">1,000원</span></div>
+      <div class="preview-msg">방송 너무 재밌어요!</div>
+    </div>
+    <div id="donation-actions">
+      <button id="donation-cancel" type="button">취소</button>
+      <button id="donation-submit" type="button">보내기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 상태 ──
+let isCapturing=false,viewerCount=Math.floor(Math.random()*180)+110;
+let recentlyUsed=[],timerSeconds=0,timerRunning=false,timerInterval=null,pageOpenedAt=Date.now();
+let likeCount=0,liked=false,subCount=0,subscribed=false;
+let heartCountVal=0,heartCounterTimer=null;
+let studyStartTime=Date.now(),usedScenarios=[],recentMsgs=[];
+let shownAchievements=[];
+
+const BOTS=[
+  {nick:'fuyu_o0',color:'#c084fc'},
+  {nick:'kimzzang',color:'#34d399'},
+  {nick:'0zarchive',color:'#60a5fa'},
+  {nick:'moru_404',color:'#f472b6'},
+  {nick:'otkzip',color:'#a3e635'},
+  {nick:'yun2log',color:'#fbbf24'},
+  {nick:'xx_cream',color:'#f87171'},
+  {nick:'새벽3시',color:'#818cf8'},
+  {nick:'danbi_zip',color:'#2dd4bf'},
+  {nick:'melon_soda',color:'#fb7185'},
+  {nick:'gmming',color:'#fdba74'},
+  {nick:'lurker777',color:'#94a3b8'},
+  {nick:'mochi_99',color:'#f9a8d4'},
+  {nick:'최애업로드기원',color:'#86efac'},
+  {nick:'cloverclip',color:'#c4b5fd'},
+  {nick:'pixelzz',color:'#6ee7b7'},
+  {nick:'1호선통근러',color:'#fde68a'},
+  {nick:'rinrin.zip',color:'#a5f3fc'},
+  {nick:'saturnring',color:'#d1d5db'},
+  {nick:'냥발바닥',color:'#fca5a5'},
+  {nick:'하트누르고감',color:'#93c5fd'},
+  {nick:'덕질계정',color:'#f0abfc'},
+  {nick:'연성보급필요',color:'#67e8f9'},
+  {nick:'와이파이불안정',color:'#bef264'},
+  {nick:'타임라인실종',color:'#fdba74'},
+  {nick:'마감도망자',color:'#fb7185'},
+  {nick:'rt하고옴',color:'#7dd3fc'},
+  {nick:'폼림열리면깨워줘',color:'#c7d2fe'},
+  {nick:'찐따쿠',color:'#f9a8d4'},
+  {nick:'스밍돌리는중',color:'#86efac'},
+  {nick:'덕메구함',color:'#fdba74'},
+  {nick:'오시사랑해',color:'#fca5a5'},
+  {nick:'캡처갈김',color:'#93c5fd'},
+  {nick:'zip_lover',color:'#c4b5fd'},
+  {nick:'nnnn_ya',color:'#d9f99d'},
+  {nick:'00년생덕후',color:'#fbcfe8'},
+  {nick:'햄스터젤리',color:'#99f6e4'},
+  {nick:'구독갈김',color:'#fef08a'},
+  {nick:'플리틀고옴',color:'#ddd6fe'},
+  {nick:'최애는장르를안가림',color:'#fdba74'}
+];
+
+// ── 그림 방송 시나리오 ──
+const SCENARIOS=[
+  // 첫 방송 입장 리액션
+  [{nick:'매방출석자',color:'#fbbf24',msg:'오늘도 왔어요!!'},{nick:'감자튀김러버',color:'#c084fc',msg:'알림 받고 바로 왔음 ㅋㅋ'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'오늘 뭐 그리는 거예요?'},{nick:'뉴구독자',color:'#a3e635',msg:'방금 구독했어요!! 처음 왔는데 반가워요'},{nick:'감자튀김러버',color:'#c084fc',msg:'환영환영 ㅋㅋ 여기 분위기 좋음'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'맞아요 여기 꾸준히 봄'}],
+
+  // 그림 시작하는 순간
+  [{nick:'그림쟁이팬',color:'#60a5fa',msg:'드디어 시작한다'},{nick:'ㅇㅇ',color:'#606060',msg:'ㄷㄷ'},{nick:'그림배우는중',color:'#f472b6',msg:'오 캔버스 켰다!'},{nick:'감자튀김러버',color:'#c084fc',msg:'두근두근'},{nick:'뉴구독자',color:'#a3e635',msg:'어떤 그림인지 기대돼요'},{nick:'매방출석자',color:'#fbbf24',msg:'항상 이 순간이 제일 설렘'}],
+
+  // 러프 단계
+  [{nick:'그림배우는중',color:'#f472b6',msg:'러프 단계에서 이미 예쁘다'},{nick:'독학중',color:'#6ee7b7',msg:'구도 잡는 거 저는 항상 어렵던데'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'와 선이 자신감 있어 보여요'},{nick:'ㅇㅇ',color:'#606060',msg:'멋있다'},{nick:'그림배우는중',color:'#f472b6',msg:'저는 러프가 진짜 못생기는데...'},{nick:'독학중',color:'#6ee7b7',msg:'저도요 ㅠ 러프에서 이미 현타옴'}],
+
+  // 선화 단계
+  [{nick:'매방출석자',color:'#fbbf24',msg:'선화 시작!'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'선이 너무 매끄럽다'},{nick:'그림배우는중',color:'#f472b6',msg:'저는 선화 할 때 손이 떨려요 ㅠ'},{nick:'독학중',color:'#6ee7b7',msg:'저도 항상 선화에서 러프랑 달라져요'},{nick:'감자튀김러버',color:'#c084fc',msg:'진짜 그거 왜 그런 거예요 ㅋㅋ'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'집중하는 거 보기 좋음'},{nick:'뉴구독자',color:'#a3e635',msg:'선 하나하나 다 예쁘다'}],
+
+  // 채색 시작
+  [{nick:'그림쟁이팬',color:'#60a5fa',msg:'채색 시작!! 이 순간 제일 좋음'},{nick:'감자튀김러버',color:'#c084fc',msg:'색 선택하는 거 구경하는 게 재밌음'},{nick:'그림배우는중',color:'#f472b6',msg:'저는 채색에서 항상 망해요 ㅠ'},{nick:'독학중',color:'#6ee7b7',msg:'색감이 어떻게 하면 좋아지는지 항상 궁금해요'},{nick:'매방출석자',color:'#fbbf24',msg:'색 고르는 거 은근 시간 걸리죠'},{nick:'ㅇㅇ',color:'#606060',msg:'오오'}],
+
+  // 색 고르는 중
+  [{nick:'눈팅하다가',color:'#94a3b8',msg:'색 고르는 거 저도 항상 오래 걸려요'},{nick:'그림배우는중',color:'#f472b6',msg:'저는 채색 시작하면 처음 색이 항상 제일 나더라고요'},{nick:'독학중',color:'#6ee7b7',msg:'그러게요 너무 많이 바꾸면 오히려 별로'},{nick:'감자튀김러버',color:'#c084fc',msg:'색상환 보면서 고르는 거 나도 배우고 싶음'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'색 팔레트 공유해주실 수 있나요?'},{nick:'아이패드유저',color:'#fb7185',msg:'저도 궁금해요 팔레트'}],
+
+  // 명암 넣기
+  [{nick:'그림배우는중',color:'#f472b6',msg:'명암 들어가니까 입체감이 생긴다'},{nick:'독학중',color:'#6ee7b7',msg:'명암이 제일 어렵지 않아요?'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'맞아요 빛 방향 잡는 게 항상 헷갈려'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'여기 이 부분 정말 잘 됐다'},{nick:'뉴구독자',color:'#a3e635',msg:'와 입체감 미쳤다...'},{nick:'ㅇㅇ',color:'#606060',msg:'ㄷㄷ'}],
+
+  // 디테일 작업
+  [{nick:'매방출석자',color:'#fbbf24',msg:'디테일 넣는 거 보는 재미가 있음'},{nick:'그림배우는중',color:'#f472b6',msg:'저는 디테일 넣다가 과해져요 ㅋㅋ'},{nick:'독학중',color:'#6ee7b7',msg:'어느 정도에서 멈춰야 하는지가 항상 어려움'},{nick:'감자튀김러버',color:'#c084fc',msg:'맞아 끝이 없잖아요'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'손 떼기가 제일 어렵다는 말이 있잖아요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'완성 기대된다'}],
+
+  // 완성 직전
+  [{nick:'그림쟁이팬',color:'#60a5fa',msg:'거의 완성된 것 같은데!'},{nick:'뉴구독자',color:'#a3e635',msg:'와 진짜 예쁘다'},{nick:'감자튀김러버',color:'#c084fc',msg:'기다린 보람이 있음 ㅋㅋ'},{nick:'그림배우는중',color:'#f472b6',msg:'어쩜 이렇게 완성도가 높죠...'},{nick:'매방출석자',color:'#fbbf24',msg:'완성되면 SNS 올리는 거죠?'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'리트윗/저장각'},{nick:'독학중',color:'#6ee7b7',msg:'저도 이렇게 그릴 수 있을까 ㅠ'}],
+
+  // 완성
+  [{nick:'그림쟁이팬',color:'#60a5fa',msg:'완성이다!!!!'},{nick:'뉴구독자',color:'#a3e635',msg:'헐 너무 예뻐요 진짜'},{nick:'감자튀김러버',color:'#c084fc',msg:'ㅋㅋㅋㅋ 박수'},{nick:'그림배우는중',color:'#f472b6',msg:'와 진짜 감탄했음'},{nick:'독학중',color:'#6ee7b7',msg:'너무 대단하다 ㅠㅠ'},{nick:'매방출석자',color:'#fbbf24',msg:'저장 완료 ㅋㅋ'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'오늘도 너무 좋았어요'},{nick:'ㅇㅇ',color:'#606060',msg:'👏👏👏'}],
+
+  // 그림체/스타일 얘기
+  [{nick:'독학중',color:'#6ee7b7',msg:'그림체가 너무 개성 있어서 좋아요'},{nick:'그림배우는중',color:'#f472b6',msg:'저는 아직 그림체를 못 찾겠어요'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'그림체 찾는 거 얼마나 걸렸어요?'},{nick:'아이패드유저',color:'#fb7185',msg:'저도 항상 흔들려요 ㅠ'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'이 채널 그림체 제일 좋아함'},{nick:'감자튀김러버',color:'#c084fc',msg:'그림체 고민하는 시간도 필요한 과정인 것 같음'}],
+
+  // 프로그램/장비 토크
+  [{nick:'뉴구독자',color:'#a3e635',msg:'어떤 프로그램 쓰세요?'},{nick:'아이패드유저',color:'#fb7185',msg:'저는 프로크리에이트 쓰는데 다르게 보이네요'},{nick:'디지털초보',color:'#fdba74',msg:'입문자는 뭐 써야 해요?'},{nick:'그림배우는중',color:'#f472b6',msg:'저도 장비 궁금했어요'},{nick:'독학중',color:'#6ee7b7',msg:'타블렛 뭐 쓰는지도 궁금함'},{nick:'감자튀김러버',color:'#c084fc',msg:'Q&A 타임이다 ㅋㅋ'}],
+
+  // 슬럼프/번아웃 공감
+  [{nick:'독학중',color:'#6ee7b7',msg:'요즘 그림이 잘 안 그려지는 슬럼프인데 이거 보면 의욕이 생겨요'},{nick:'그림배우는중',color:'#f472b6',msg:'저도요 ㅠ 번아웃 왔다가 다시 보러 왔어요'},{nick:'뉴구독자',color:'#a3e635',msg:'이 방송 보면 나도 그리고 싶어져요'},{nick:'감자튀김러버',color:'#c084fc',msg:'그거 진짜임 나도'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'동기부여 채널임 여기가'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'같이 그리는 느낌이라 좋아요'}],
+
+  // 단골 vs 신규 친목
+  [{nick:'매방출석자',color:'#fbbf24',msg:'여기 맨날 오는 사람 손 들어봐요'},{nick:'감자튀김러버',color:'#c084fc',msg:'🙋'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'저요'},{nick:'ㅇㅇ',color:'#606060',msg:'ㅇㅇ'},{nick:'뉴구독자',color:'#a3e635',msg:'저는 오늘 처음인데 단골 될 것 같아요'},{nick:'매방출석자',color:'#fbbf24',msg:'환영해요 ㅋㅋㅋ 여기 분위기 좋음'},{nick:'그냥지나가던',color:'#d1d5db',msg:'저도 앞으로 자주 올게요'}],
+
+  // 방송 중 잡담
+  [{nick:'감자튀김러버',color:'#c084fc',msg:'그림 그리면서 뭐 들어요? 음악?'},{nick:'야식먹는중',color:'#f87171',msg:'저는 방송 보면서 밥 먹는중 ㅋㅋ'},{nick:'밤샘시청자',color:'#818cf8',msg:'새벽에 보는 사람 있어요?'},{nick:'그림배우는중',color:'#f472b6',msg:'저요 ㅋㅋ 새벽에 보는 게 더 몰입됨'},{nick:'야식먹는중',color:'#f87171',msg:'새벽 감성이 있긴 함'},{nick:'ㅇㅇ',color:'#606060',msg:'맞아'}],
+
+  // 게임방송 드립
+  [{nick:'감자튀김러버',color:'#c084fc',msg:'그림 말고 게임 방송도 해주세요'},{nick:'ㅇㅇ',color:'#606060',msg:'ㅋㅋㅋㅋ'},{nick:'매방출석자',color:'#fbbf24',msg:'그림 그리면서 롤 하는 거 어때요'},{nick:'그림배우는중',color:'#f472b6',msg:'그거 진짜 가능한 사람 있을까요 ㅋㅋ'},{nick:'독학중',color:'#6ee7b7',msg:'둘 다 망할 것 같음'},{nick:'감자튀김러버',color:'#c084fc',msg:'ㅋㅋㅋ 근데 보고싶다'}],
+
+  // 짧은 잡담 / 방송 텐션
+  [{nick:'감자튀김러버',color:'#c084fc',msg:'오늘도 출석'},{nick:'ㅇㅇ',color:'#606060',msg:'ㅊㅊ'},{nick:'매방출석자',color:'#fbbf24',msg:'출석완료'}],
+  [{nick:'야식먹는중',color:'#f87171',msg:'저 지금 떡볶이 먹으면서 보는중'},{nick:'감자튀김러버',color:'#c084fc',msg:'맛있겠다'},{nick:'ㅇㅇ',color:'#606060',msg:'갑자기 배고파짐'}],
+  [{nick:'밤샘시청자',color:'#818cf8',msg:'새벽반 있나요'},{nick:'ㅇㅇ',color:'#606060',msg:'있음'},{nick:'감자튀김러버',color:'#c084fc',msg:'여기 정상인 없음'}],
+  [{nick:'뉴구독자',color:'#a3e635',msg:'처음 왔는데 분위기 너무 좋다'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'환영해요 ㅋㅋ'},{nick:'매방출석자',color:'#fbbf24',msg:'자주 와요'}],
+  [{nick:'그림쟁이팬',color:'#60a5fa',msg:'브금도 좋고 작업도 좋고 최고다'},{nick:'감자튀김러버',color:'#c084fc',msg:'힐링방송임 여기가'},{nick:'ㅇㅇ',color:'#606060',msg:'인정'}],
+  [{nick:'그냥지나가던',color:'#d1d5db',msg:'눈팅하다 채팅 침'},{nick:'감자튀김러버',color:'#c084fc',msg:'환영합니다'},{nick:'그냥지나가던',color:'#d1d5db',msg:'머쓱 ㅋㅋ'}],
+  [{nick:'디지털초보',color:'#fdba74',msg:'줌인줌아웃만 하다 시간 가는 사람 저요'},{nick:'아이패드유저',color:'#fb7185',msg:'저도요 ㅠ'},{nick:'감자튀김러버',color:'#c084fc',msg:'유구한 증상'}],
+  [{nick:'그림배우는중',color:'#f472b6',msg:'오늘 손풀기만 해도 성공이다'},{nick:'독학중',color:'#6ee7b7',msg:'그게 진짜 중요함'},{nick:'ㅇㅇ',color:'#606060',msg:'출석이 먼저지'}],
+  [{nick:'감자튀김러버',color:'#c084fc',msg:'이 방 은근 웃김'},{nick:'매방출석자',color:'#fbbf24',msg:'시청자들이 웃김 ㅋㅋ'},{nick:'ㅇㅇ',color:'#606060',msg:'니가 제일 웃김'}],
+  [{nick:'야식먹는중',color:'#f87171',msg:'콜라 따고 와도 되죠'},{nick:'감자튀김러버',color:'#c084fc',msg:'허락함'},{nick:'야식먹는중',color:'#f87171',msg:'감사합니다'}],
+
+  // 그림 공부/연습 고민
+  [{nick:'독학중',color:'#6ee7b7',msg:'매일 조금씩이라도 그리는 게 진짜 어렵네요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'그래도 꾸준히 하는 사람이 제일 빨리 늘더라구요'},{nick:'그림배우는중',color:'#f472b6',msg:'맞아요 하루 쉬면 그 다음날이 더 어렵더라'},{nick:'감자튀김러버',color:'#c084fc',msg:'출석 시스템 필요함 진짜'}],
+  [{nick:'디지털초보',color:'#fdba74',msg:'인체 비율이 항상 이상해져요'},{nick:'독학중',color:'#6ee7b7',msg:'저는 얼굴은 되는데 몸통에서 망함'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'저도 전신 그릴 때마다 현타 와요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'그래서 다들 전신 크로키 하더라구요'}],
+  [{nick:'그림배우는중',color:'#f472b6',msg:'손 진짜 너무 어렵다'},{nick:'감자튀김러버',color:'#c084fc',msg:'손은 진짜 외계인임'},{nick:'독학중',color:'#6ee7b7',msg:'저는 그냥 제 손 찍어서 봐요'},{nick:'ㅇㅇ',color:'#606060',msg:'그게 제일 정확하긴 함'}],
+  [{nick:'아이패드유저',color:'#fb7185',msg:'색감 공부는 어떻게 해야 해요?'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'영화 스틸컷 많이 보라는 말 들었어요'},{nick:'독학중',color:'#6ee7b7',msg:'저는 좋아하는 일러스트 색만 따로 모아둬요'},{nick:'감자튀김러버',color:'#c084fc',msg:'색감 폴더 있는 사람들 멋짐'}],
+  [{nick:'뉴구독자',color:'#a3e635',msg:'배경도 같이 연습해야겠죠?'},{nick:'그림배우는중',color:'#f472b6',msg:'알면서 도망치는 중...'},{nick:'감자튀김러버',color:'#c084fc',msg:'배경은 늘 뒤로 미뤄짐'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'근데 조금씩 하면 진짜 덜 무서워져요'}],
+  [{nick:'독학중',color:'#6ee7b7',msg:'완성까지 가는 체력이 부족한 것 같아요'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'완성은 실력보다 체력이라는 말 있잖아요'},{nick:'감자튀김러버',color:'#c084fc',msg:'명언 또 나왔다'},{nick:'ㅇㅇ',color:'#606060',msg:'근데 맞말'}],
+  [{nick:'디지털초보',color:'#fdba74',msg:'브러쉬 바꾸면 갑자기 잘 그려질 것 같음'},{nick:'아이패드유저',color:'#fb7185',msg:'ㅋㅋㅋㅋ 브러쉬 유목민 시기'},{nick:'독학중',color:'#6ee7b7',msg:'결국 기본 브러쉬로 돌아오더라'},{nick:'감자튀김러버',color:'#c084fc',msg:'늘 같은 결말'}],
+  [{nick:'그림배우는중',color:'#f472b6',msg:'참고 자료 찾다가 시간이 다 감'},{nick:'눈팅하다가',color:'#94a3b8',msg:'핀터레스트만 보다가 끝남'},{nick:'감자튀김러버',color:'#c084fc',msg:'자료 찾는 게 본업인 사람들'},{nick:'ㅇㅇ',color:'#606060',msg:'아픈 팩트'}],
+  [{nick:'오랜팬입니다',color:'#2dd4bf',msg:'러프가 제일 예쁘고 선화 가면 망하는 현상 뭔지 아세요'},{nick:'그림배우는중',color:'#f472b6',msg:'제 인생 얘기예요'},{nick:'독학중',color:'#6ee7b7',msg:'선 정리할 때 리듬이 죽는대요'},{nick:'감자튀김러버',color:'#c084fc',msg:'뇌보정의 무서움'}],
+  [{nick:'뉴구독자',color:'#a3e635',msg:'저 오늘 처음 완성까지 가볼래요'},{nick:'매방출석자',color:'#fbbf24',msg:'좋다 응원함'},{nick:'감자튀김러버',color:'#c084fc',msg:'완성하면 자랑하기 약속'},{nick:'뉴구독자',color:'#a3e635',msg:'도망 안 가면요 ㅋㅋ'}],
+
+  // 시청자들끼리 친목/사담
+  [{nick:'매방출석자',color:'#fbbf24',msg:'오늘 다들 뭐 하다 왔어요'},{nick:'야식먹는중',color:'#f87171',msg:'저는 라면 먹고 왔어요'},{nick:'밤샘시청자',color:'#818cf8',msg:'저는 과제하다 탈주'},{nick:'감자튀김러버',color:'#c084fc',msg:'다들 생존 중이네'}],
+  [{nick:'오랜팬입니다',color:'#2dd4bf',msg:'여기 맨날 오는 닉네임들 익숙해서 웃김'},{nick:'감자튀김러버',color:'#c084fc',msg:'나도 이제 가족 같음'},{nick:'매방출석자',color:'#fbbf24',msg:'단골방 됐어 ㅋㅋ'},{nick:'ㅇㅇ',color:'#606060',msg:'출석률 무엇'}],
+  [{nick:'야식먹는중',color:'#f87171',msg:'치킨 vs 떡볶이'},{nick:'감자튀김러버',color:'#c084fc',msg:'감튀'},{nick:'ㅇㅇ',color:'#606060',msg:'질문을 안 들음'},{nick:'야식먹는중',color:'#f87171',msg:'역시 너답다'}],
+  [{nick:'밤샘시청자',color:'#818cf8',msg:'새벽 감성으로 그림 보면 더 좋아보임'},{nick:'그림쟁이팬',color:'#60a5fa',msg:'맞아요 낮이랑 다름'},{nick:'감자튀김러버',color:'#c084fc',msg:'새벽 버프 있음'},{nick:'ㅇㅇ',color:'#606060',msg:'대신 다음날 망함'}],
+  [{nick:'그림러버',color:'#f9a8d4',msg:'저 지금 이불 속에서 보는중'},{nick:'감자튀김러버',color:'#c084fc',msg:'최고의 시청 자세'},{nick:'야식먹는중',color:'#f87171',msg:'저는 책상에 앉아 있지만 마음은 침대에 있음'}],
+  [{nick:'그냥지나가던',color:'#d1d5db',msg:'방송 틀어놓고 청소 중이에요'},{nick:'매방출석자',color:'#fbbf24',msg:'생산적이다'},{nick:'감자튀김러버',color:'#c084fc',msg:'난 누워있는데'}],
+  [{nick:'눈팅하다가',color:'#94a3b8',msg:'채팅창 조용하면 괜히 말 걸고 싶어짐'},{nick:'감자튀김러버',color:'#c084fc',msg:'그래서 내가 떠듦'},{nick:'ㅇㅇ',color:'#606060',msg:'알고있음'}],
+  [{nick:'야식먹는중',color:'#f87171',msg:'배달 왔는데 받으러 가기 귀찮다'},{nick:'감자튀김러버',color:'#c084fc',msg:'그래도 가야지...'},{nick:'야식먹는중',color:'#f87171',msg:'현관까지가 너무 멀어'}],
+  [{nick:'그림러버',color:'#f9a8d4',msg:'오늘 방송 끝나면 자야지'},{nick:'밤샘시청자',color:'#818cf8',msg:'정말?'},{nick:'그림러버',color:'#f9a8d4',msg:'아마도?'},{nick:'감자튀김러버',color:'#c084fc',msg:'거짓말 탐지기 필요'}],
+  [{nick:'매방출석자',color:'#fbbf24',msg:'오늘 다들 물은 마셨나요'},{nick:'ㅇㅇ',color:'#606060',msg:'아뇨'},{nick:'감자튀김러버',color:'#c084fc',msg:'혼난다'},{nick:'독학중',color:'#6ee7b7',msg:'저 마시고 왔어요'}],
+
+  // 뻘대화 / 아무말
+  [{nick:'감자튀김러버',color:'#c084fc',msg:'배고프다'},{nick:'ㅇㅇ',color:'#606060',msg:'또 시작'},{nick:'감자튀김러버',color:'#c084fc',msg:'진지함'}],
+  [{nick:'그림배우는중',color:'#f472b6',msg:'잠깐만 저 지금 멍때림'},{nick:'감자튀김러버',color:'#c084fc',msg:'복귀해'},{nick:'그림배우는중',color:'#f472b6',msg:'넵'}],
+  [{nick:'야식먹는중',color:'#f87171',msg:'콜라 다 마심'},{nick:'ㅇㅇ',color:'#606060',msg:'축하'},{nick:'야식먹는중',color:'#f87171',msg:'안축하해도 돼'}],
+  [{nick:'밤샘시청자',color:'#818cf8',msg:'지금 자면 지는 기분'},{nick:'감자튀김러버',color:'#c084fc',msg:'이미 지쳤잖아'}],
+  [{nick:'그냥지나가던',color:'#d1d5db',msg:'저 질문 있었는데 까먹음'},{nick:'감자튀김러버',color:'#c084fc',msg:'다음 기회에'}],
+  [{nick:'아이패드유저',color:'#fb7185',msg:'줌인줌아웃만 하는중'},{nick:'디지털초보',color:'#fdba74',msg:'익숙한 증상'}],
+  [{nick:'뉴구독자',color:'#a3e635',msg:'저만 졸려요?'},{nick:'밤샘시청자',color:'#818cf8',msg:'아니요'},{nick:'감자튀김러버',color:'#c084fc',msg:'전국민 졸림'}],
+  [{nick:'감자튀김러버',color:'#c084fc',msg:'이 방 웃김'},{nick:'ㅇㅇ',color:'#606060',msg:'니가 웃김'}],
+  [{nick:'눈팅하다가',color:'#94a3b8',msg:'아까 뭐였지'},{nick:'ㅇㅇ',color:'#606060',msg:'모름'},{nick:'눈팅하다가',color:'#94a3b8',msg:'정직하네'}],
+  [{nick:'그림러버',color:'#f9a8d4',msg:'지금 분위기 좋다'},{nick:'매방출석자',color:'#fbbf24',msg:'조용히 보기 좋음'}],
+  [{nick:'감자튀김러버',color:'#c084fc',msg:'오늘도 TMI 없음'},{nick:'ㅇㅇ',color:'#606060',msg:'지금 만든 거지'},{nick:'감자튀김러버',color:'#c084fc',msg:'들켰네'}],
+  [{nick:'야식먹는중',color:'#f87171',msg:'치즈볼 먹고싶다'},{nick:'감자튀김러버',color:'#c084fc',msg:'갑자기?'},{nick:'야식먹는중',color:'#f87171',msg:'갑자기'}],
+  [{nick:'밤샘시청자',color:'#818cf8',msg:'다들 살아있어요?'},{nick:'ㅇㅇ',color:'#606060',msg:'겨우'},{nick:'감자튀김러버',color:'#c084fc',msg:'형태만 유지중'}],
+  [{nick:'그림배우는중',color:'#f472b6',msg:'아까보다 좀 낫다'},{nick:'독학중',color:'#6ee7b7',msg:'그럼 된거죠'}],
+  [{nick:'그냥지나가던',color:'#d1d5db',msg:'잠깐 다녀옴'},{nick:'감자튀김러버',color:'#c084fc',msg:'환영'},{nick:'그냥지나가던',color:'#d1d5db',msg:'다시 감'},{nick:'ㅇㅇ',color:'#606060',msg:'ㅋㅋㅋ'}],
+
+  // 긴 수다/고민
+  [{nick:'뉴구독자',color:'#a3e635',msg:'사실 그림 시작한 지 얼마 안 됐는데요, 잘 그리고 싶다는 마음은 큰데 막상 그리려고 하면 너무 못 그려서 손이 안 가요'},{nick:'독학중',color:'#6ee7b7',msg:'그 시기 다들 와요. 머릿속 기대치만 높고 손은 아직 안 따라가서 더 괴롭더라구요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'맞아요 저도 처음엔 러프 하나 그리는데 몇 시간씩 걸렸어요'},{nick:'감자튀김러버',color:'#c084fc',msg:'근데 그렇게 오래 걸려도 쌓이면 진짜 조금씩 늘긴 하더라'},{nick:'뉴구독자',color:'#a3e635',msg:'오... 다들 그랬다고 하니까 좀 안심돼요'},{nick:'그림배우는중',color:'#f472b6',msg:'처음엔 그냥 완성보단 계속 손에 익히는 게 중요한 듯'}],
+  [{nick:'그림배우는중',color:'#f472b6',msg:'저는 미대 안 나와서 늦은 건가 싶을 때가 많아요'},{nick:'독학중',color:'#6ee7b7',msg:'저도 비전공인데 결국 계속 하는 사람이 남는다고 느꼈어요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'전공자도 결국 자기 그림은 따로 찾더라구요'},{nick:'매방출석자',color:'#fbbf24',msg:'시작 경로보다 지금 어떻게 하느냐가 더 큰 것 같아요'},{nick:'감자튀김러버',color:'#c084fc',msg:'결론은 다같이 평생 공부'}],
+  [{nick:'아이패드유저',color:'#fb7185',msg:'가끔은 잘 그리는 사람들 너무 많아서 괜히 내가 해도 되나 싶어요'},{nick:'눈팅하다가',color:'#94a3b8',msg:'SNS 오래 보면 진짜 멘탈 갈려요'},{nick:'독학중',color:'#6ee7b7',msg:'그래서 저는 비교되는 계정은 좀 정리했어요'},{nick:'그림러버',color:'#f9a8d4',msg:'저는 과거 그림이랑만 비교하려고 노력중'},{nick:'감자튀김러버',color:'#c084fc',msg:'그게 맞는 것 같음 남이랑 비교하면 끝이 없음'}],
+  [{nick:'오랜팬입니다',color:'#2dd4bf',msg:'퇴근하고 그림까지 챙기는 거 진짜 쉽지 않네요'},{nick:'그림배우는중',color:'#f472b6',msg:'맞아요 집 오면 이미 체력이 다 빠져있음'},{nick:'회사원그림러',color:'#86efac',msg:'그래도 좋아하니까 또 켜게 되는 것 같아요'},{nick:'독학중',color:'#6ee7b7',msg:'진짜 놓고 싶었으면 이렇게까지 안 왔을 거예요'},{nick:'감자튀김러버',color:'#c084fc',msg:'맞아 좋아하니까 자꾸 생각남'}],
+  [{nick:'밤샘시청자',color:'#818cf8',msg:'새벽에 그림 보면 괜히 진지해짐'},{nick:'그림러버',color:'#f9a8d4',msg:'맞아요 낮에는 안 들던 생각이 들어요'},{nick:'감자튀김러버',color:'#c084fc',msg:'새벽 감성은 과학이다'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'그래도 이런 시간에 같이 보고 있는 사람들 있어서 덜 외로운 느낌'},{nick:'야식먹는중',color:'#f87171',msg:'그 말 너무 좋다 ㅠ'}],
+  [{nick:'디지털초보',color:'#fdba74',msg:'포트폴리오 준비하시는 분들 있나요?'},{nick:'취준생그림러',color:'#fb7185',msg:'저 준비 중인데 진짜 막막해요'},{nick:'독학중',color:'#6ee7b7',msg:'저는 작은 완성작부터 쌓으려구요. 큰 작업만 하다가 하나도 못 끝냄'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'완성작 여러 개가 확실히 중요한 것 같아요'},{nick:'감자튀김러버',color:'#c084fc',msg:'완성은 체력, 포폴은 인내심...'}],
+  [{nick:'그림쟁이팬',color:'#60a5fa',msg:'예전 그림 보면 너무 부끄러운데 다들 저장해두세요?'},{nick:'독학중',color:'#6ee7b7',msg:'전 일부러 남겨둬요. 나중에 보면 늘었다는 증거가 되더라구요'},{nick:'그림배우는중',color:'#f472b6',msg:'저도 최근엔 안 지우고 있어요'},{nick:'감자튀김러버',color:'#c084fc',msg:'과거의 나를 견디는 훈련'}],
+  [{nick:'뉴구독자',color:'#a3e635',msg:'외주 받아보고 싶은데 아직 자신이 없어요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'처음엔 작은 작업부터 시작하는 게 덜 무섭대요'},{nick:'독학중',color:'#6ee7b7',msg:'돈 받는 순간 책임감이 커져서 포폴 정리부터 하는 게 좋은 듯'},{nick:'감자튀김러버',color:'#c084fc',msg:'맞아 취미랑 일이 되는 순간 압박감 확 커짐'},{nick:'뉴구독자',color:'#a3e635',msg:'그래도 언젠간 꼭 해보고 싶어요'}],
+  [{nick:'그림배우는중',color:'#f472b6',msg:'예전에 그림 접으려고 했는데 이상하게 계속 돌아오게 되더라구요'},{nick:'그림러버',color:'#f9a8d4',msg:'좋아하니까 그런 거 아닐까요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'저도 몇 번 쉬었는데 결국 다시 그리게 됐어요'},{nick:'감자튀김러버',color:'#c084fc',msg:'포기하려고 해도 잘 안 되는 취미가 진짜 좋아하는 거라더라'},{nick:'ㅇㅇ',color:'#606060',msg:'찔린다'}]
+
+];
+
+// ── 자동 채팅 풀 ──
+const AUTO_MSGS=[
+  '알림 뜨자마자 들어옴','유입인데 분위기 좋다','썸넬 보고 눌렀는데 개좋음','와 오늘 라이브였다니',
+  '유튜브 감성 너무 좋다','추천에 떠서 왔는데 오래 볼 듯','이 시간에 라이브 너무 좋음','작업브금이랑 화면 조합 좋다',
+  '채팅창 은근 재밌네','오늘 그림 뭔지 벌써 궁금함','이런 작업방송 찾고 있었음','유튜브 라이브 느낌 좋아요',
+  '손 움직이는 거 계속 보게 됨','줌인줌아웃도 재밌는 사람 나뿐?','와 선 진짜 안 망설여서 신기함','이 부분 캡처함',
+  '색 얹으니까 갑자기 심장뜀','벌써 저장하고 싶다','이거 완성되면 커뮤에 자랑 가능','아 미감 좋다',
+  '개좋다 진짜','존잘이다...','이 맛에 라이브 보지','오타쿠 심장에 안 좋음','최애 아닌데 최애됨',
+  '트위터에 자랑하고 싶은 그림','탐라에 들고가고 싶다','이 장면 썸네일감인데요','방금 치임',
+  '나 지금 캡처함','하 이래서 생방 봄','실시간으로 보는 맛이 있음','이런거 보면 외롭지가 않음',
+  '혼자 그림 그리다 켜놓기 딱 좋다','저도 작업창 켜놓고 같이 있는중','진짜 사람 많은 작업실 느낌 난다','유튜브라 더 편안하다',
+  '댓글창 속도 딱 좋음','은근 채팅 읽는 맛도 있다','이 방 특유의 적당한 소란이 좋음','혼자 낙서 중인데 안 외로워짐',
+  '지금 커피 가져옴','야식 들고 다시 옴','씻고 누웠다가 라이브 봄','새벽 감성 미쳤다',
+  '회사 다녀오고 이거 보면 살 것 같음','과제하다가 탈주함','마감 미루고 왔어요','공부하다가 잠깐 들어왔는데 못 나가겠음',
+  '그림러 아니어도 보게 된다','그냥 보기만 해도 힐링됨','오늘 채팅창 사람 많아서 좋다','유입 더 늘었으면 좋겠다',
+  '브러쉬 뭐 쓰는지 궁금','이 프로그램 뭔지 물어봐도 되나요','타블렛 뭐 쓰시는지 궁금해요','레이어 몇 개 쓰는지 궁금',
+  '이런 방송은 진짜 오래 해줬으면','구독 누르고 감','좋아요도 눌렀어요','알림 설정까지 완료',
+  '오늘도 알고리즘 감사합니다','탐라친구 불러오고 싶다','친구한테 링크 보내도 되죠','유튜브 라이브 은근 숨은 맛집임',
+  '이 부분 너무 좋아서 말 잃음','사람들 리액션 보는 맛도 있음','채팅창 다들 센스있네','다들 말투 웃겨서 계속 보게 됨'
+];
+
+const SHORT_MSGS=[
+  'ㅋㅋ','ㅋㅋㅋ','ㅋㅋㅋㅋ','헐','와','오','오오','ㄷㄷ','ㅠㅠ','ㅁㅊ','ㄹㅇ','ㅇㅈ','ㅈㄴ좋다','개좋다','존좋',
+  '하...','미쳣다','미쳤다','아놔 좋다','아 너무좋음','와씨','실화냐','진짜?','헉','오마갓','좋다','좋네요',
+  'ㄱㅇㅇ','예쁘다','존예','개이쁨','캡처함','저장','미감미침','사람많네','유입인가','헐유입',
+  '탐라감성','트친들같음','맞말','그니깐','아맞다','오타났네','아무튼좋음','진짜좋음','좋아좋아',
+  'ㅠ','🥹','❤️','🔥','👏','👀','아','하','네','넵','그쵸','맞지','그렇지','좋아',
+  '추천떠라','알고리즘일해라','유튜브야밀어줘','폼미쳤다','미감무슨일','취향저격','와개취','이건된다','좋은데요','좋아용'
+];
+
+const REPLY_MSGS=[
+  '맞아요 저도 그 생각했어요','ㅇㅈㅋㅋ 저도요','아 그니까요','저만 그런 줄','와 그말 공감','그거 ㄹㅇ이에요',
+  '저도 방금 그 생각함','하 저도요ㅠ','그 포인트 좋다','맞말이에요','그 부분이 진짜 좋음','저도 캡처함',
+  '유튜브 채팅치고 되게 편안하네요','다들 말투 웃겨서 좋음','은근 다 같이 보는 느낌 남','실시간 반응 재밌어요',
+  '아 그거 진짜 꿀팁','오 저장해둬야겠다','그렇게 보니까 또 다르네','헐 전 몰랐어요','와 설명 듣고 보니 맞네',
+  '그림 보다가 채팅도 보게됨','이 방 사람들 센스 있음','괜히 채팅 치게 되는 방송임','같이 있는 느낌이라 좋아요',
+  '맞아요 혼자 작업하면 적막한데','저도 켜두고 그림중','같이 뭐 하는 기분 남','새벽에 이런 소란 좋음',
+  '트위터식 감탄 나옴','방금 오타쿠됨','최애 생김','심장아프다','아 너무좋네 진짜','저는 여기 눕겠습니다'
+];
+
+const DONORS=['익명','구독갈김','탐라유입','rt하고옴','오시사랑해','덕질계정','캡처갈김','연성보급필요','fuyu_o0','danbi_zip','유튜브유입'];
+const DONOR_AMOUNTS=['1,000','3,000','5,000','10,000','30,000','50,000'];
+const DONOR_MSGS=['방송 너무 좋아요!','오늘도 잘 보겠습니다','항상 응원해요 ㅠㅠ','덕분에 그림 시작했어요','최고예요 진짜','이 방송이 제 힐링이에요','오래오래 해주세요','그림 너무 예쁘다','팬이에요 진짜로','감사합니다 ❤️','','',''];
+const JOIN_NICKS=['추천타고옴','초면이지만구독','탐라에서왔어요','유입입니다','알고리즘유입','링크타고옴','처음인데좋다','트친추천받음','방금구독함','오시찾다들어옴'];
+const ENTER_MSGS=['님이 입장하셨습니다 👋','님이 들어왔어요','님 환영합니다!'];
+const EXIT_MSGS=['님이 나갔습니다','님이 퇴장하셨습니다'];
+const NOTICE_MSGS=['📌 채팅 규칙: 서로 존중해주세요!','📌 욕설/비방은 차단됩니다','📌 질문은 채팅으로 남겨주세요','📌 구독하고 알림 설정도 해주세요 🔔'];
+const ACHIEVEMENT_MSGS=[
+  {min:10,msg:'📌 방송 시작 10분 경과!'},
+  {min:30,msg:'🔥 30분 방송 중! 함께해줘서 고마워요'},
+  {min:60,msg:'🏆 1시간 방송 달성! 오늘 진짜 열심히 했어요'},
+  {min:90,msg:'✨ 90분! 거의 완성이 보여요'},
+  {min:120,msg:'💪 2시간 방송! 오늘 정말 긴 방송이에요'},
+];
+const SUB_ALERTS=['님이 구독하셨습니다! 🎉','님 구독 감사해요! 🔔','님이 새로 구독해주셨어요!'];
+
+function randItem(a){return a[Math.floor(Math.random()*a.length)];}
+
+const EXTRA_SCENARIOS=[
+  [
+    {nick:'탐라에서왔어요',color:'#7dd3fc',msg:'탐라에서 보고 왔는데 유튜브 라이브였네'},
+    {nick:'rt하고옴',color:'#7dd3fc',msg:'아 이거 방송이었구나 개좋다'},
+    {nick:'덕질계정',color:'#f0abfc',msg:'채팅창도 왤케 웃김'},
+    {nick:'캡처갈김',color:'#93c5fd',msg:'지금 장면 바로 캡처함'}
+  ],
+  [
+    {nick:'오시사랑해',color:'#fca5a5',msg:'유튜브는 이런 적당한 북적임이 좋음'},
+    {nick:'연성보급필요',color:'#67e8f9',msg:'맞아 트위치 느낌 말고 딱 유튜브 작업방송 감성'},
+    {nick:'구독갈김',color:'#fef08a',msg:'댓글창 속도도 안 무서워서 좋음'},
+    {nick:'fuyu_o0',color:'#c084fc',msg:'나도 그래서 계속 틀어둠'}
+  ],
+  [
+    {nick:'폼림열리면깨워줘',color:'#c7d2fe',msg:'나 지금 그림 안 그리고 있었는데 갑자기 켜게 됨'},
+    {nick:'마감도망자',color:'#fb7185',msg:'이런 방송 틀면 죄책감 생겨서라도 하게됨'},
+    {nick:'와이파이불안정',color:'#bef264',msg:'ㅋㅋㅋㅋ 강제 생산성 방송'},
+    {nick:'새벽3시',color:'#818cf8',msg:'외롭지 않은게 제일 큼'}
+  ],
+  [
+    {nick:'최애업로드기원',color:'#86efac',msg:'이 부분 약간 썸네일감인데'},
+    {nick:'캡처갈김',color:'#93c5fd',msg:'ㅇㅈ 벌써 두 장 저장함'},
+    {nick:'otkzip',color:'#a3e635',msg:'커뮤짤로 들고가고 싶은 장면 나옴'},
+    {nick:'moru_404',color:'#f472b6',msg:'아 개좋아 진짜'}
+  ],
+  [
+    {nick:'덕메구함',color:'#fdba74',msg:'유입인데 여기 사람들 다 말투 귀엽다'},
+    {nick:'nnnn_ya',color:'#d9f99d',msg:'다들 자주 보이는 닉네임 같음 ㅋㅋ'},
+    {nick:'rinrin.zip',color:'#a5f3fc',msg:'슬슬 단골방 되는중'},
+    {nick:'saturnring',color:'#d1d5db',msg:'적당히 떠들고 적당히 조용해서 좋음'}
+  ],
+  [
+    {nick:'00년생덕후',color:'#fbcfe8',msg:'유튜브 추천이 일 잘했다'},
+    {nick:'햄스터젤리',color:'#99f6e4',msg:'추천에 떠서 눌렀는데 계속 보게됨'},
+    {nick:'구독갈김',color:'#fef08a',msg:'이건 구독 안 하면 손해임'},
+    {nick:'플리틀고옴',color:'#ddd6fe',msg:'알림도 켜고 감'}
+  ]
+];
+SCENARIOS.push(...EXTRA_SCENARIOS);
+
+const COWORK_SCENARIOS=[
+  [{nick:'moru_404',color:'#f472b6',msg:'저도 지금 옆창에서 러프 잡는중이에요'},{nick:'fuyu_o0',color:'#c084fc',msg:'헐 저도 같이 작업중 ㅋㅋ'},{nick:'danbi_zip',color:'#2dd4bf',msg:'이 방송 틀어두면 손이 좀 감'}],
+  [{nick:'플리틀고옴',color:'#ddd6fe',msg:'브금 잔잔한거 깔아주시면 넘 좋을듯..'},{nick:'melon_soda',color:'#fb7185',msg:'맞아요 작업할때 lo-fi류 잘듣는 편인지 궁금'},{nick:'saturnring',color:'#d1d5db',msg:'다들 뭐 들으면서 작업하세요'}],
+  [{nick:'마감도망자',color:'#fb7185',msg:'저는 지금 배경 밀린거 하고있어요'},{nick:'pixelzz',color:'#6ee7b7',msg:'같이 작업하는 사람 많아서 좋다'},{nick:'lurker777',color:'#94a3b8',msg:'나만 켜두고 멍때리는거 아니었네'}],
+  [{nick:'연성보급필요',color:'#67e8f9',msg:'오늘은 선화라도 끝내는게 목표..'},{nick:'찐따쿠',color:'#f9a8d4',msg:'작업 목표 말하고 가는거 좋다'},{nick:'덕메구함',color:'#fdba74',msg:'저는 채색 1차까지만 가보겟음'}],
+  [{nick:'캡처갈김',color:'#93c5fd',msg:'이런 분위기면 같이 작업하기 좋음'},{nick:'zip_lover',color:'#c4b5fd',msg:'맞아 채팅 너무 안빠르면 더 집중 잘돼요'},{nick:'nnnn_ya',color:'#d9f99d',msg:'지금 속도 딱 작업방 느낌'}],
+  [{nick:'00년생덕후',color:'#fbcfe8',msg:'브금 없이 펜 소리만 들어도 좋긴한데 잔잔한거도 좋을듯'},{nick:'햄스터젤리',color:'#99f6e4',msg:'저는 비오는 재즈 틀어놓고 작업 자주해요'},{nick:'구독갈김',color:'#fef08a',msg:'작업 플리 공유 받아보고싶다'}],
+  [{nick:'최애는장르를안가림',color:'#fdba74',msg:'다들 클튜 켜놓고 있나요'},{nick:'otkzip',color:'#a3e635',msg:'전 클튜요'},{nick:'melon_soda',color:'#fb7185',msg:'전 프로크리'},{nick:'와이파이불안정',color:'#bef264',msg:'혼자 작업하는데도 다같이 있는 기분 남'}],
+  [{nick:'rt하고옴',color:'#7dd3fc',msg:'탐라에서 보고 들어왔는데 다같이 작업하는 느낌이라 좋네요'},{nick:'오시사랑해',color:'#fca5a5',msg:'유입인데 조용히 같이 그리기 좋아요'},{nick:'하트누르고감',color:'#93c5fd',msg:'이런 방송 더 많아졌음 좋겠다'}],
+  [{nick:'새벽3시',color:'#818cf8',msg:'새벽작업러들 은근 많네'},{nick:'폼림열리면깨워줘',color:'#c7d2fe',msg:'전 지금 타이포 정리중이에요'},{nick:'타임라인실종',color:'#fdba74',msg:'저는 원고식자 하면서 틀어둠'}],
+  [{nick:'fuyu_o0',color:'#c084fc',msg:'다들 지금 뭐 작업해요 궁금하다'},{nick:'moru_404',color:'#f472b6',msg:'저는 반무테 연습중'},{nick:'pixelzz',color:'#6ee7b7',msg:'전 SD 낙서요'},{nick:'danbi_zip',color:'#2dd4bf',msg:'썸네일 수정중이에요'}],
+  [{nick:'cloverclip',color:'#c4b5fd',msg:'브금 잔잔한 피아노면 좋을 것 같아요'},{nick:'rinrin.zip',color:'#a5f3fc',msg:'아님 그냥 유튜브 브이로그 감성 플리도 좋구'},{nick:'saturnring',color:'#d1d5db',msg:'작업할때 너무 웅장한건 집중깨짐 ㅋㅋ'}],
+  [{nick:'덕질계정',color:'#f0abfc',msg:'저도 지금 크로키 하면서 보고있어요'},{nick:'냥발바닥',color:'#fca5a5',msg:'같이 손푸는 사람들 있어서 덜 미룸'},{nick:'gmming',color:'#fdba74',msg:'ㄹㅇ 약간 작업실 공유받는 느낌'}]
+];
+SCENARIOS.push(...COWORK_SCENARIOS);
+
+
+const HUMAN_SUFFIXES=['..','...',' ㅋㅋ',' ㅠ',' ㅎㅎ','',''];
+const HUMAN_SHORTS=['ㅇㅇ','ㄹㅇ','헐','와','오','ㅋㅋ','ㅁㅊ','좋다'];
+function maybeTypo(msg){
+  const swaps=[['정말','진짜'],['너무','넘'],['그래요','그여'],['있어요','잇어요'],['같아요','같아여'],['지금','짐'],['이거','이거'],['근데','근디']];
+  let out=msg;
+  if(Math.random()<0.18){
+    const pair=swaps[Math.floor(Math.random()*swaps.length)];
+    out=out.replace(pair[0],pair[1]);
+  }
+  if(Math.random()<0.12 && out.length>6){
+    const idx=Math.floor(Math.random()*(out.length-1));
+    out=out.slice(0,idx)+out[idx+1]+out[idx]+out.slice(idx+2);
+  }
+  if(Math.random()<0.15) out+=HUMAN_SUFFIXES[Math.floor(Math.random()*HUMAN_SUFFIXES.length)];
+  if(Math.random()<0.08) out=HUMAN_SHORTS[Math.floor(Math.random()*HUMAN_SHORTS.length)];
+  return out;
+}
+function humanizeNick(name){
+  return name;
+}
+function randomBot(ex){
+  ex=ex||[];
+  var p=BOTS.filter(function(b){return !ex.includes(b.nick)&&!recentlyUsed.includes(b.nick);});
+  if(!p.length) p=BOTS.filter(function(b){return !ex.includes(b.nick);});
+  if(!p.length) p=BOTS;
+  var b=p[Math.floor(Math.random()*p.length)];
+  recentlyUsed.push(b.nick);
+  if(recentlyUsed.length>7) recentlyUsed.shift();
+  return b;
+}
+var $=function(id){return document.getElementById(id);};
+
+// ── 구독/좋아요 ──
+function toggleSub(){
+  subscribed=!subscribed;
+  if(subscribed){
+    subCount++;
+    $('sub-btn').textContent='구독중 ✓';
+    $('sub-btn').classList.add('subscribed');
+    addSubAlert('나');
+    showToast('🔔','구독해주셔서 감사해요!');
+    checkMilestone();
+    launchConfetti(20);
+  } else {
+    subCount=Math.max(0,subCount-1);
+    $('sub-btn').textContent='구독';
+    $('sub-btn').classList.remove('subscribed');
+  }
+  $('sub-count').textContent=subCount.toLocaleString();
+}
+function toggleLike(){
+  liked=!liked;
+  if(liked){
+    likeCount++;
+    showToast('👍','좋아요 감사해요!');
+  } else likeCount=Math.max(0,likeCount-1);
+  $('like-btn').classList.toggle('liked',liked);
+  $('like-icon').textContent=liked?'👍':'👍';
+  $('like-count').textContent=likeCount;
+}
+function addSubAlert(nick){
+  var area=$('messages'),div=document.createElement('div');
+  div.className='sub-alert';
+  div.textContent='🔔 '+nick+' '+maybeTypo(randItem(SUB_ALERTS));
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+
+// ── 타이머 ──
+function renderTimer(){
+  timerSeconds=Math.floor((Date.now()-pageOpenedAt)/1000);
+  var h=Math.floor(timerSeconds/3600),m=Math.floor((timerSeconds%3600)/60),s=timerSeconds%60;
+  $('timer-display').textContent=(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+}
+function startTimer(){
+  if(timerRunning) return; timerRunning=true;
+  $('live-dot').style.background='#ff0000';
+  studyStartTime=Date.now();
+  renderTimer();
+  timerInterval=setInterval(function(){
+    renderTimer();
+    var mins=Math.floor(timerSeconds/60);
+    ACHIEVEMENT_MSGS.forEach(function(a){
+      if(mins>=a.min&&!shownAchievements.includes(a.min)){
+        shownAchievements.push(a.min);
+        setTimeout(function(){addAchievement(a.msg);},1500);
+      }
+    });
+    if(isCapturing && timerSeconds%60===0&&Math.random()<0.28){
+      subCount++;
+      $('sub-count').textContent=subCount.toLocaleString();
+      var fakeNick=randItem(JOIN_NICKS);
+      setTimeout(function(){addSubAlert(fakeNick);},Math.random()*2200+500);
+    }
+    if(isCapturing && timerSeconds%35===0&&Math.random()<0.45){ likeCount++; $('like-count').textContent=likeCount; }
+  },1000);
+}
+function stopTimer(){
+  $('live-dot').style.background='#555';
+}
+
+// ── addMsg 계열 ──
+function addMsg(nick,text,isMe,isSystem,color){
+  isMe=isMe||false;isSystem=isSystem||false;color=color||'#aaa';
+  var area=$('messages'),div=document.createElement('div');
+  div.className='msg'+(isMe?' me':'')+(isSystem?' system':'');
+  var nc=isMe?'#065fd4':(isSystem?'#aaa':color);
+  var badge=BADGES[nick]?'<span class="badge">'+BADGES[nick]+'</span>':'';
+  div.innerHTML=badge+'<span class="nick" style="color:'+nc+'">'+nick+'</span><span class="txt">'+text+'</span>';
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+  if(!isMe&&!isSystem){recentMsgs.push({nick:nick,text:text});if(recentMsgs.length>10)recentMsgs.shift();}
+}
+function addEnter(nick){
+  var area=$('messages'),div=document.createElement('div');
+  div.className='enter-msg';div.textContent=nick+' '+randItem(ENTER_MSGS);
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function addExit(nick){
+  var area=$('messages'),div=document.createElement('div');
+  div.className='enter-msg';div.style.color='#bbb';div.textContent=nick+' '+randItem(EXIT_MSGS);
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function addNotice(text){
+  var area=$('messages'),div=document.createElement('div');
+  div.className='notice-msg';div.textContent=text;
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function addAchievement(text){
+  var area=$('messages'),div=document.createElement('div');
+  div.className='achievement-msg';div.textContent=text;
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function addTyping(id,nick,color){
+  var area=$('messages'),div=document.createElement('div');
+  div.id='typ_'+id;div.className='typing-row';
+  div.innerHTML='<span class="typing-name" style="color:'+color+'">'+nick+'</span><div class="dots"><span></span><span></span><span></span></div>';
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function removeTyping(id){var el=$('typ_'+id);if(el)el.remove();}
+
+// ── 시청자 수 ──
+function updateVC(){
+  viewerCount+=Math.floor(Math.random()*12)-4;viewerCount=Math.max(80,viewerCount);
+  $('vc').textContent=viewerCount+'명 시청중';
+  $('view-count').textContent='시청자 '+viewerCount+'명';
+}
+setInterval(updateVC,12000);updateVC();
+
+// ── 슈퍼챗 ──
+function getTier(amount){
+  if(amount>=100000) return 'red';
+  if(amount>=50000) return 'pink';
+  if(amount>=30000) return 'orange';
+  if(amount>=10000) return 'yellow';
+  if(amount>=5000) return 'green';
+  if(amount>=3000) return 'cyan';
+  return 'blue';
+}
+function formatAmt(n){return Number(n).toLocaleString()+'원';}
+function showDonationToast(name,amount,msg,tier){
+  var layer=$('video-donation-layer');
+  var toast=document.createElement('div');
+  toast.className='video-donation-toast tier-'+tier;
+  toast.innerHTML='<div class="video-donation-head"><span class="video-donation-name">★ '+name+'</span><span class="video-donation-amount">'+formatAmt(amount)+'</span></div>'+(msg?'<div class="video-donation-msg">'+msg+'</div>':'');
+  layer.appendChild(toast);
+  setTimeout(function(){if(layer.contains(toast))layer.removeChild(toast);},5000);
+}
+function addChatDonation(name,amount,msg,tier){
+  var area=$('messages'),div=document.createElement('div');
+  div.className='chat-donation-card tier-'+tier;
+  div.innerHTML='<div class="chat-donation-top"><span class="chat-donation-name">★ '+name+'</span><span class="chat-donation-amount">'+formatAmt(amount)+'</span></div>'+(msg?'<div class="chat-donation-msg">'+msg+'</div>':'');
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function sendFakeDonation(){
+  var name=($('nick-input').value.trim())||'나';
+  var amount=parseInt($('donation-amount-input').value)||1000;
+  var msg=$('donation-message-input').value.trim();
+  var tier=getTier(amount);
+  $('donation-modal').classList.remove('show');
+  showDonationToast(name,amount,msg,tier);
+  addChatDonation(name,amount,msg,tier);
+}
+function autoFakeDonation(){
+  var donor=randItem(DONORS),amount=parseInt(randItem(DONOR_AMOUNTS).replace(/,/g,'')),msg=maybeTypo(randItem(DONOR_MSGS)),tier=getTier(amount);
+  showDonationToast(donor,amount,msg,tier);
+  addChatDonation(donor,amount,msg,tier);
+}
+
+// ── fireOne ──
+async function fireOne(msgPool,exclude){
+  var bot=randomBot(exclude),id='b'+Date.now()+Math.random(),r=Math.random();
+  var pool=r<0.12?SHORT_MSGS.filter(function(s){return s.length>1||/[^\x00-\x7F]/.test(s)}):msgPool;
+  var delay=Math.random()*1100+700;
+  addTyping(id,bot.nick,bot.color);
+  await new Promise(function(r){setTimeout(r,delay);});
+  removeTyping(id);
+  addMsg(bot.nick,maybeTypo(randItem(pool)),false,false,bot.color);
+  if(Math.random()<0.25){
+    await new Promise(function(r){setTimeout(r,Math.random()*1800+1100);});
+    addMsg(bot.nick,randItem(SHORT_MSGS),false,false,bot.color);
+  }
+  return bot.nick;
+}
+
+// ── 시나리오 ──
+async function playScenario(){
+  var avail=SCENARIOS.filter(function(_,i){return !usedScenarios.includes(i);});
+  if(!avail.length){usedScenarios=[];avail=SCENARIOS;}
+  var idx=Math.floor(Math.random()*avail.length),realIdx=SCENARIOS.indexOf(avail[idx]);
+  usedScenarios.push(realIdx);
+  var lines=avail[idx];
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i],id='s'+Date.now()+i;
+    await new Promise(function(r){setTimeout(r,Math.random()*3600+1800);});
+    addTyping(id,line.nick,line.color);
+    await new Promise(function(r){setTimeout(r,Math.random()*1200+700);});
+    removeTyping(id);
+    addMsg(line.nick,maybeTypo(line.msg),false,false,line.color);
+  }
+}
+
+// ── 스케줄러 ──
+function scheduleAuto(){
+  setTimeout(async function(){
+    await fireOne(AUTO_MSGS,[]);
+    scheduleAuto();
+  },Math.random()*12000+9000);
+}
+function scheduleBurst(){
+  setTimeout(async function(){
+    var count=Math.floor(Math.random()*4)+3,used=[];
+    for(var i=0;i<count;i++){
+      await new Promise(function(r){setTimeout(r,Math.random()*2800+1400);});
+      var nick=await fireOne(AUTO_MSGS,used);used.push(nick);
+    }
+    scheduleBurst();
+  },Math.random()*36000+32000);
+}
+function scheduleScenario(){
+  setTimeout(async function(){
+    await playScenario();
+    scheduleScenario();
+  },Math.random()*110000+120000);
+}
+function scheduleDonation(){
+  setTimeout(function(){autoFakeDonation();scheduleDonation();},Math.random()*200000+120000);
+}
+function scheduleEnterExit(){
+  setTimeout(function(){
+    if(Math.random()<0.65) addEnter(randItem(JOIN_NICKS));
+    else addExit(BOTS[Math.floor(Math.random()*BOTS.length)].nick);
+    scheduleEnterExit();
+  },Math.random()*42000+18000);
+}
+function scheduleNotice(){
+  setTimeout(function(){
+    addNotice(randItem(NOTICE_MSGS));
+    scheduleNotice();
+  },Math.random()*480000+300000);
+}
+function scheduleSubAlert(){
+  setTimeout(function(){
+    var nick=randItem(JOIN_NICKS);
+    addSubAlert(nick);
+    subCount++;
+    $('sub-count').textContent=subCount.toLocaleString();
+    checkMilestone();
+    scheduleSubAlert();
+  },Math.random()*120000+70000);
+}
+
+// ── 뱃지 맵 ──
+const BADGES={
+  'fuyu_o0':'🎨','danbi_zip':'⭐','구독갈김':'🔔',
+  '연성보급필요':'🔥','덕질계정':'💬','추천타고옴':'👀',
+  '캡처갈김':'📸','오시사랑해':'💖'
+};
+
+// ── 토스트 알림 ──
+function showToast(icon, text){
+  var layer=$('toast-layer');
+  var div=document.createElement('div');
+  div.className='toast-item';
+  div.innerHTML='<span class="toast-icon">'+icon+'</span><span>'+text+'</span>';
+  layer.appendChild(div);
+  setTimeout(function(){
+    div.classList.add('out');
+    setTimeout(function(){if(layer.contains(div))layer.removeChild(div);},300);
+  },3000);
+}
+
+// ── 컨페티 ──
+function launchConfetti(count){
+  var colors=['#ff0000','#ff6600','#ffcc00','#00cc44','#0066ff','#9900cc','#ff66cc'];
+  for(var i=0;i<(count||60);i++){
+    var el=document.createElement('div');
+    el.className='confetti-piece';
+    el.style.cssText='left:'+Math.random()*100+'vw;top:-10px;background:'+colors[Math.floor(Math.random()*colors.length)]+';--dur:'+(1.5+Math.random()*1.5)+'s;--delay:'+(Math.random()*0.8)+'s;--dx:'+(Math.random()*200-100)+'px;transform:rotate('+Math.random()*360+'deg);width:'+(6+Math.random()*8)+'px;height:'+(6+Math.random()*8)+'px;';
+    document.body.appendChild(el);
+    setTimeout(function(e){if(document.body.contains(e))document.body.removeChild(e);},(3000),el);
+  }
+}
+
+// ── 마일스톤 체크 ──
+const MILESTONES=[
+  {n:10, emoji:'🎉', text:'구독자 10명!', sub:'첫 10명 달성!! 감사해요 ❤️'},
+  {n:30, emoji:'🔥', text:'구독자 30명!', sub:'30명이 함께해요! 너무 고마워요'},
+  {n:50, emoji:'⭐', text:'구독자 50명!', sub:'50명 달성!! 진짜 감동이에요 ㅠㅠ'},
+  {n:100, emoji:'🏆', text:'구독자 100명!!', sub:'100명 달성!! 꿈만 같아요 🎊'},
+  {n:200, emoji:'👑', text:'구독자 200명!!!', sub:'200명!! 이게 진짜야?? 감사합니다!!!'},
+  {n:500, emoji:'💥', text:'구독자 500명!!!', sub:'500명... 말이 안 나와요 ㅠㅠㅠ'},
+];
+var shownMilestones=[];
+function checkMilestone(){
+  MILESTONES.forEach(function(m){
+    if(subCount>=m.n && !shownMilestones.includes(m.n)){
+      shownMilestones.push(m.n);
+      setTimeout(function(){ showMilestone(m); }, 500);
+    }
+  });
+}
+function showMilestone(m){
+  launchConfetti(80);
+  $('milestone-emoji').textContent=m.emoji;
+  $('milestone-text').textContent=m.text;
+  $('milestone-sub').textContent=m.sub;
+  $('milestone-overlay').classList.add('show');
+  // 배경 잠깐 빨간 플래시
+  $('milestone-overlay').style.background='rgba(255,0,0,0.15)';
+  setTimeout(function(){$('milestone-overlay').style.background='rgba(0,0,0,0)';},300);
+  setTimeout(function(){$('milestone-overlay').classList.remove('show');},4000);
+  // 채팅 도배
+  var celebMsgs=['🎉 '+m.text,'축하해요!!','대박이다!!','ㅋㅋㅋㅋ 진짜야??','와 대단하다','짝짝짝!!','축하드려요 ㅠㅠ','오오오오!!!','진짜??','감동이다'];
+  celebMsgs.forEach(function(msg,i){
+    setTimeout(function(){
+      var bot=randomBot([]);
+      addMsg(bot.nick,msg,false,false,bot.color);
+    },i*280);
+  });
+  showToast(m.emoji, m.text+' 달성!');
+}
+
+// ── 채팅 폭발 모드 ──
+async function chatBurstMode(count){
+  $('messages').classList.add('burst');
+  var used=[];
+  for(var i=0;i<count;i++){
+    await new Promise(function(r){setTimeout(r,Math.random()*300+150);});
+    var bot=randomBot(used);used.push(bot.nick);
+    if(used.length>5) used=[];
+    addMsg(bot.nick,randItem(SHORT_MSGS),false,false,bot.color);
+  }
+  setTimeout(function(){$('messages').classList.remove('burst');},500);
+}
+
+// ── 랜덤 이벤트 배너 ──
+const EVENT_BANNERS=[
+  {text:'🔥 지금 급상승 중인 방송이에요!', bg:'linear-gradient(90deg,#ff4444,#ff6b00)'},
+  {text:'👀 지금 많은 분들이 시청 중이에요', bg:'linear-gradient(90deg,#065fd4,#0077cc)'},
+  {text:'✨ 오늘 방송 너무 좋은데요?', bg:'linear-gradient(90deg,#9333ea,#db2777)'},
+  {text:'🎨 실시간 그림 방송 중 — 지금 바로 구경하세요', bg:'linear-gradient(90deg,#059669,#0891b2)'},
+  {text:'⭐ 오늘 완성작 나올 것 같은 예감!', bg:'linear-gradient(90deg,#d97706,#dc2626)'},
+];
+function showEventBanner(){
+  var ev=randItem(EVENT_BANNERS);
+  var banner=$('event-banner');
+  banner.textContent=ev.text;
+  banner.style.background=ev.bg;
+  banner.classList.add('show');
+  setTimeout(function(){banner.classList.remove('show');},5000);
+}
+
+// ── VIP 특별 입장 ──
+const VIP_NAMES=['🌟 10만 그림계정','💎 일러레 선배님','🎨 유명 금손님','⭐ 커뮤에서 본 닉네임','👑 알고리즘이 밀어준 금손'];
+function showVipEnter(){
+  var name=randItem(VIP_NAMES);
+  var area=$('messages'),div=document.createElement('div');
+  div.className='vip-enter';
+  div.textContent=name+' 님이 방송에 입장하셨습니다! 🎉';
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+  showToast('👑', name+' 님 입장!');
+  // 채팅 반응 폭발
+  setTimeout(function(){chatBurstMode(8);},500);
+}
+
+// ── 시청자 그래프 ──
+var graphData=[];
+var graphCtx=null;
+function initGraph(){
+  var canvas=$('graph-canvas');
+  if(!canvas) return;
+  graphCtx=canvas.getContext('2d');
+  canvas.width=100;canvas.height=30;
+  $('viewer-graph').classList.add('show');
+}
+function updateGraph(){
+  graphData.push(viewerCount);
+  if(graphData.length>20) graphData.shift();
+  if(!graphCtx) return;
+  var ctx=graphCtx,w=100,h=30;
+  ctx.clearRect(0,0,w,h);
+  if(graphData.length<2) return;
+  var mn=Math.min.apply(null,graphData)-5,mx=Math.max.apply(null,graphData)+5;
+  ctx.beginPath();
+  ctx.strokeStyle='rgba(255,100,100,0.9)';
+  ctx.lineWidth=1.5;
+  ctx.lineCap='round';
+  graphData.forEach(function(v,i){
+    var x=i/(graphData.length-1)*w;
+    var y=h-(v-mn)/(mx-mn)*h;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // fill under
+  ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();
+  ctx.fillStyle='rgba(255,100,100,0.1)';ctx.fill();
+}
+setInterval(updateGraph,12000);
+
+// ── 좋아요 토스트 ──
+var likeToastNames=['익명','유입','시청자','구독자','추천타고온사람','트친데려옴'];
+function randomLikeToast(){
+  var nick=randItem(likeToastNames)+'님';
+  showToast('👍', nick+'이 좋아요를 눌렀어요');
+}
+
+// ── 스케줄러 추가 ──
+function scheduleEventBanner(){
+  setTimeout(function(){
+    showEventBanner();
+    scheduleEventBanner();
+  },Math.random()*300000+180000);
+}
+function scheduleVip(){
+  setTimeout(function(){
+    showVipEnter();
+    scheduleVip();
+  },Math.random()*480000+240000);
+}
+function scheduleLikeToast(){
+  setTimeout(function(){
+    if(timerRunning) randomLikeToast();
+    scheduleLikeToast();
+  },Math.random()*30000+15000);
+}
+function scheduleChatBurst(){
+  setTimeout(function(){
+    if(timerRunning) chatBurstMode(10);
+    scheduleChatBurst();
+  },Math.random()*45000+40000);
+}
+
+// ── 하트 ──
+function sendHeart(){
+  heartCountVal++;
+  var layer=$('heart-layer');
+  var h=document.createElement('div');
+  h.className='heart-float';
+  h.textContent='❤️';
+  h.style.setProperty('--dx',(Math.random()*40-20)+'px');
+  layer.appendChild(h);
+  setTimeout(function(){if(layer.contains(h))layer.removeChild(h);},1800);
+  $('heart-count-num').textContent=heartCountVal;
+  $('heart-counter').classList.add('show');
+  clearTimeout(heartCounterTimer);
+  heartCounterTimer=setTimeout(function(){
+    $('heart-counter').classList.remove('show');
+    heartCountVal=0;
+  },2500);
+}
+
+// ── 이모지 피커 ──
+var EMOJIS=['😍','🥹','😭','🤩','👏','💪','🔥','✨','💯','❤️','🩷','🩵','🎨','✏️','🖌️','😂','🤣','😅','👀','🫶'];
+var ePicker=$('emoji-picker');
+EMOJIS.forEach(function(e){
+  var s=document.createElement('span');s.textContent=e;
+  s.onclick=function(){$('chat-input').value+= e;$('chat-input').focus();ePicker.classList.remove('show');};
+  ePicker.appendChild(s);
+});
+$('emoji-btn').onclick=function(ev){ev.stopPropagation();ePicker.classList.toggle('show');};
+document.addEventListener('click',function(){ePicker.classList.remove('show');});
+
+// ── 도네이션 모달 ──
+var amtInput=$('donation-amount-input'),msgInput=$('donation-message-input');
+var preview=$('donation-preview');
+function updatePreview(){
+  var amt=parseInt(amtInput.value)||0,tier=getTier(amt),msg=msgInput.value.trim();
+  var nick=($('nick-input').value.trim())||'나';
+  preview.className='';preview.style.cssText='';
+  var colors={blue:'linear-gradient(135deg,rgba(29,78,216,0.96),rgba(30,64,175,0.92))',cyan:'linear-gradient(135deg,rgba(8,145,178,0.96),rgba(14,116,144,0.92))',green:'linear-gradient(135deg,rgba(22,163,74,0.96),rgba(21,128,61,0.92))',yellow:'linear-gradient(135deg,rgba(202,138,4,0.97),rgba(234,88,12,0.92))',orange:'linear-gradient(135deg,rgba(234,88,12,0.97),rgba(220,38,38,0.92))',pink:'linear-gradient(135deg,rgba(190,24,93,0.97),rgba(126,34,206,0.93))',red:'linear-gradient(135deg,rgba(220,38,38,0.98),rgba(127,29,29,0.95))'};
+  preview.style.background=colors[tier];preview.style.borderRadius='12px';preview.style.padding='11px 14px';preview.style.color='white';
+  preview.innerHTML='<div class="preview-top"><span class="preview-name">★ '+nick+'</span><span class="preview-amount">'+formatAmt(amt)+'</span></div>'+(msg?'<div class="preview-msg">'+msg+'</div>':'');
+}
+amtInput.oninput=updatePreview;msgInput.oninput=updatePreview;
+document.querySelectorAll('.tier-chip').forEach(function(btn){
+  btn.onclick=function(){amtInput.value=btn.dataset.amount;updatePreview();};
+});
+$('donate-btn').onclick=function(){$('donation-modal').classList.add('show');updatePreview();};
+$('donation-cancel').onclick=function(){$('donation-modal').classList.remove('show');};
+$('donation-submit').onclick=sendFakeDonation;
+$('donation-modal').onclick=function(e){if(e.target===$('donation-modal'))$('donation-modal').classList.remove('show');};
+
+// ── 화면 공유 ──
+async function startShare(){
+  try{
+    var stream=await navigator.mediaDevices.getDisplayMedia({video:{cursor:'always'},audio:{systemAudio:'include'}});
+    isCapturing=true;
+    var video=$('video-el');
+    video.srcObject=stream;video.style.display='block';
+    $('placeholder').style.display='none';
+    $('stop-btn').classList.add('show');
+    $('live-badge').classList.add('show');
+    $('v-title').textContent='🎨 그림 라이브 방송 중';
+    startTimer();
+    addMsg('시스템','방송 시작!',false,true);
+    showToast('🔴','방송이 시작됐어요!');
+    setTimeout(function(){showEventBanner();},8000);
+    stream.getTracks().forEach(function(t){t.onended=stopShare;});
+    setTimeout(function(){addEnter('새구독자');},1200);
+    setTimeout(function(){fireOne(AUTO_MSGS,[]);},4000);
+  }catch(e){if(e.name!=='NotAllowedError') addMsg('시스템','공유 실패: '+e.message,false,true);}
+}
+function stopShare(){
+  isCapturing=false;stopTimer();
+  var video=$('video-el');
+  if(video.srcObject){video.srcObject.getTracks().forEach(function(t){t.stop();});video.srcObject=null;}
+  video.style.display='none';$('placeholder').style.display='flex';
+  $('stop-btn').classList.remove('show');$('live-badge').classList.remove('show');
+  $('v-title').textContent='방송이 종료됐어요';
+  addMsg('시스템','방송 종료',false,true);
+}
+
+// ── 채팅 전송 ──
+function sendChat(){
+  var text=$('chat-input').value.trim();
+  if(!text) return;
+  $('chat-input').value='';
+  var nick=($('nick-input').value.trim())||'나';
+  addMsg(nick,text,true);
+  // 1~2명 반응
+  var count=Math.random()>0.45?2:1,used=[];
+  (async function(){
+    for(var i=0;i<count;i++){
+      await new Promise(function(r){setTimeout(r,Math.random()*1800+900+i*1200);});
+      var bot=randomBot(used),id='ru'+Date.now()+i;
+      addTyping(id,bot.nick,bot.color);
+      await new Promise(function(r){setTimeout(r,Math.random()*900+600);});
+      removeTyping(id);
+      addMsg(bot.nick,maybeTypo(randItem(REPLY_MSGS)),false,false,bot.color);
+      used.push(bot.nick);
+    }
+  })();
+}
+
+// ── 이벤트 바인딩 ──
+$('share-btn').onclick=startShare;
+$('stop-btn').onclick=stopShare;
+$('share-vf-btn').onclick=startShare;
+$('chat-input').onkeydown=function(e){if(e.key==='Enter')sendChat();};
+$('heart-btn').onclick=sendHeart;
+
+// ── 비밀번호 게이트 ──
+const ENTRY_PASSWORD='shambi';
+function unlockGate(){
+  document.body.classList.remove('locked');
+  $('password-gate').style.display='none';
+  $('password-input').value='';
+  $('password-error').textContent='';
+  sessionStorage.setItem('drawing_live_gate','ok');
+}
+$('password-form').onsubmit=function(e){
+  e.preventDefault();
+  if(($('password-input').value||'').trim()===ENTRY_PASSWORD){unlockGate();}
+  else{$('password-error').textContent='비밀번호가 맞지 않아요.';$('password-input').select();}
+};
+
+// ── 시작 ──
+startTimer();
+renderTimer();
+scheduleAuto();scheduleBurst();scheduleScenario();
+scheduleDonation();scheduleEnterExit();scheduleNotice();scheduleSubAlert();
+scheduleEventBanner();scheduleVip();scheduleLikeToast();scheduleChatBurst();
+setTimeout(initGraph, 500);
+
+if(sessionStorage.getItem('drawing_live_gate')==='ok') unlockGate();
+else setTimeout(function(){$('password-input').focus();},120);
+
+setTimeout(function(){addMsg('fuyu_o0',maybeTypo('오늘도 같이 작업하러 왔어요'),false,false,'#c084fc');},2200);
+setTimeout(function(){addMsg('danbi_zip',maybeTypo('알림 뜨자마자 켜놓고 선따는중 ㅋㅋ'),false,false,'#2dd4bf');},5200);
+setTimeout(function(){addMsg('탐라에서왔어요',maybeTypo('유입인데 작업방 분위기 좋네요'),false,false,'#7dd3fc');},9800);
+setTimeout(function(){addEnter('추천타고옴');},13000);
+setTimeout(function(){addMsg('추천타고옴',maybeTypo('저도 지금 클튜 켜고 같이 작업중이에요 ㅎㅎ'),false,false,'#fef08a');},16000);
+setTimeout(function(){addNotice('📌 잔잔하게 같이 작업하는 방송이에요. 채팅은 천천히 올라옵니다 ✍️');},26000);
+setTimeout(function(){playScenario();},120000);
+</script>
+</body>
+</html>
