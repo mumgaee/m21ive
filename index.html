@@ -240,6 +240,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 body.locked{overflow:hidden;}
 body.locked #main, body.locked #topbar, body.locked #milestone-overlay, body.locked #toast-layer, body.locked #donation-modal{filter:blur(3px);pointer-events:none;user-select:none;}
 
+
+/* ── 방송 설정 입장 ── */
+#setup-gate{position:fixed;inset:0;background:linear-gradient(180deg,#111318,#191c24);display:none;align-items:center;justify-content:center;z-index:4999;padding:20px;}
+#setup-card{width:min(460px,94vw);background:rgba(255,255,255,0.97);border:1px solid rgba(255,255,255,0.5);border-radius:26px;box-shadow:0 18px 60px rgba(0,0,0,0.35);padding:28px;}
+#setup-card h2{font-size:22px;font-weight:900;color:#111;margin-bottom:8px;letter-spacing:-0.3px;}
+#setup-card p{font-size:13px;color:#606060;line-height:1.6;margin-bottom:14px;}
+#setup-form{display:flex;flex-direction:column;gap:12px;}
+.setup-field label{display:block;font-size:12px;font-weight:700;color:#606060;margin-bottom:6px;}
+.setup-field input{width:100%;height:44px;border-radius:12px;border:1px solid var(--border2);background:#f5f5f5;padding:0 14px;font-size:14px;outline:none;font-family:inherit;}
+#setup-submit{height:44px;border:none;border-radius:999px;background:#111;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+#setup-submit:hover{background:#222;}
+#setup-help{font-size:12px;color:#888;line-height:1.55;margin-top:2px;}
+
 </style>
 </head>
 <body class="locked">
@@ -252,6 +265,26 @@ body.locked #main, body.locked #topbar, body.locked #milestone-overlay, body.loc
       <input id="password-input" type="password" placeholder="비밀번호 입력" autocomplete="current-password" />
       <button id="password-submit" type="submit">입장하기</button>
       <div id="password-error"></div>
+    </form>
+  </div>
+</div>
+
+
+<div id="setup-gate">
+  <div id="setup-card">
+    <h2>방송 설정</h2>
+    <p>입장 전에 닉네임과 방송 제목을 정해주세요. 제목은 들어간 뒤에도 계속 수정할 수 있어요.</p>
+    <form id="setup-form">
+      <div class="setup-field">
+        <label for="setup-nick">내 닉네임</label>
+        <input id="setup-nick" type="text" maxlength="12" value="나" placeholder="닉네임" />
+      </div>
+      <div class="setup-field">
+        <label for="setup-title">방송 제목</label>
+        <input id="setup-title" type="text" maxlength="60" value="🎨 그림 라이브 방송 중" placeholder="방송 제목" />
+      </div>
+      <div id="setup-help">채팅은 이 설정을 마친 뒤부터 시작돼요.</div>
+      <button id="setup-submit" type="submit">방송 입장하기</button>
     </form>
   </div>
 </div>
@@ -393,7 +426,7 @@ body.locked #main, body.locked #topbar, body.locked #milestone-overlay, body.loc
 <script>
 // ── 상태 ──
 let isCapturing=false,viewerCount=Math.floor(Math.random()*180)+110;
-let recentlyUsed=[],timerSeconds=0,timerRunning=false,timerInterval=null,pageOpenedAt=Date.now();
+let recentlyUsed=[],timerSeconds=0,timerRunning=false,timerInterval=null,pageOpenedAt=null,chatStarted=false;
 let likeCount=0,liked=false,subCount=0,subscribed=false;
 let heartCountVal=0,heartCounterTimer=null;
 let studyStartTime=Date.now(),usedScenarios=[],recentMsgs=[];
@@ -492,6 +525,27 @@ const SCENARIOS=[
   // 게임방송 드립
   [{nick:'감자튀김러버',color:'#c084fc',msg:'그림 말고 게임 방송도 해주세요'},{nick:'ㅇㅇ',color:'#606060',msg:'ㅋㅋㅋㅋ'},{nick:'매방출석자',color:'#fbbf24',msg:'그림 그리면서 롤 하는 거 어때요'},{nick:'그림배우는중',color:'#f472b6',msg:'그거 진짜 가능한 사람 있을까요 ㅋㅋ'},{nick:'독학중',color:'#6ee7b7',msg:'둘 다 망할 것 같음'},{nick:'감자튀김러버',color:'#c084fc',msg:'ㅋㅋㅋ 근데 보고싶다'}],
 
+	// 오타쿠 감성 리액션
+	[{nick:'otk_lover',color:'#f472b6',msg:'허엌ㄱ.. [닉네임]넴.... 존잘니뮤ㅠㅠㅠ'}],
+	[{nick:'creamzip',color:'#c084fc',msg:'[닉네임]님...! 혹시 커미션 받으시나요 8ㅅ888 ...'}],
+	[{nick:'babycollector',color:'#f9a8d4',msg:'제 애기들 그려주세요! 이쁘죠 ㅎㅎ'}],
+	[{nick:'luv_illust',color:'#a5f3fc',msg:'와 존잘님... 여기가 루브르인가요?'}],
+	[{nick:'tsundere_otk',color:'#fca5a5',msg:'흥... 삐질거에여 혼자만 잘그릴래여?'}],
+	[{nick:'otk_zz',color:'#f472b6',msg:'허엉... [닉네임]넴... 그림 왜케 사기야ㅠㅠㅠ'}],
+	[{nick:'luv_zip',color:'#c084fc',msg:'[닉네임]님 그림 볼때마다 심장아픔... 책임지세여ㅠㅠㅠ'}],
+	[{nick:'baby_otk',color:'#f9a8d4',msg:'저 지금 캡쳐 10장넘게함...넘예뻐요'}],
+	[{nick:'cream_404',color:'#a5f3fc',msg:'아니 잠만요... 이거 무료로 봐도 되는거 맞나요??'}],
+	[{nick:'otk_archive',color:'#60a5fa',msg:'이거 탐라에 뿌리고싶다... [닉네임]님 계정있어요?'}],
+	[{nick:'fan_illust',color:'#86efac',msg:'진짜 너무취향이라서 눈물남 ㅠㅠㅠ'}],
+	[{nick:'zip_luvr',color:'#fbcfe8',msg:'와 미쳤다 이거 평생봐도 안질릴듯'}],
+	[{nick:'nnn_otk',color:'#ddd6fe',msg:'저 이런그림 진짜좋아해요... 장르뭐파세요...?'}],
+	[{nick:'cream_soda',color:'#fb7185',msg:'[닉네임]님 틔터 하시나요 제발ㅠ 알려주세요ㅜㅜㅠ'}],
+	[{nick:'otk_melt',color:'#67e8f9',msg:'아 진짜 개좋다... 말이안나옴'}],
+	[{nick:'luvluv_otk',color:'#f0abfc',msg:'이거 팬아트 그려도되나요?? 허락해주세요ㅠ'}],
+	[{nick:'baby_line',color:'#93c5fd',msg:'느낌 너무좋아서 계속 확대중이에요...'}],
+	[{nick:'otk_holic',color:'#fde68a',msg:'아니 이거 왜케 잘그리세요 진짜 내손이랑 비교되네!!'}],
+	[{nick:'zip_otk',color:'#bef264',msg:'이거 보고 나도 그리려고 켰는데 손이 안움직여요ㅠ'}],
+	
   // 짧은 잡담 / 방송 텐션
   [{nick:'감자튀김러버',color:'#c084fc',msg:'오늘도 출석'},{nick:'ㅇㅇ',color:'#606060',msg:'ㅊㅊ'},{nick:'매방출석자',color:'#fbbf24',msg:'출석완료'}],
   [{nick:'야식먹는중',color:'#f87171',msg:'저 지금 떡볶이 먹으면서 보는중'},{nick:'감자튀김러버',color:'#c084fc',msg:'맛있겠다'},{nick:'ㅇㅇ',color:'#606060',msg:'갑자기 배고파짐'}],
@@ -556,6 +610,24 @@ const SCENARIOS=[
   [{nick:'뉴구독자',color:'#a3e635',msg:'외주 받아보고 싶은데 아직 자신이 없어요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'처음엔 작은 작업부터 시작하는 게 덜 무섭대요'},{nick:'독학중',color:'#6ee7b7',msg:'돈 받는 순간 책임감이 커져서 포폴 정리부터 하는 게 좋은 듯'},{nick:'감자튀김러버',color:'#c084fc',msg:'맞아 취미랑 일이 되는 순간 압박감 확 커짐'},{nick:'뉴구독자',color:'#a3e635',msg:'그래도 언젠간 꼭 해보고 싶어요'}],
   [{nick:'그림배우는중',color:'#f472b6',msg:'예전에 그림 접으려고 했는데 이상하게 계속 돌아오게 되더라구요'},{nick:'그림러버',color:'#f9a8d4',msg:'좋아하니까 그런 거 아닐까요'},{nick:'오랜팬입니다',color:'#2dd4bf',msg:'저도 몇 번 쉬었는데 결국 다시 그리게 됐어요'},{nick:'감자튀김러버',color:'#c084fc',msg:'포기하려고 해도 잘 안 되는 취미가 진짜 좋아하는 거라더라'},{nick:'ㅇㅇ',color:'#606060',msg:'찔린다'}]
 
+,
+  [{nick:'fuyu_o0',color:'#c084fc',msg:'[닉네임]님 그림 오늘도 넘예쁘다..'},{nick:'kimzzang',color:'#34d399',msg:'ㄹㅇ 자주 보고싶음'},{nick:'ㅇㅇ',color:'#606060',msg:'sns 하시면 진짜 팔로함'}],
+  [{nick:'moru_404',color:'#f472b6',msg:'[닉네임]님 혹시 틔터 안하세요?'},{nick:'pixelzz',color:'#6ee7b7',msg:'그림 올라오면 맨날 볼텐데'},{nick:'ㅇㅇ',color:'#606060',msg:'계정 알고싶다 진짜'}],
+  [{nick:'otkzip',color:'#a3e635',msg:'[닉네임]님 무슨장르 좋아하세요??'},{nick:'yun2log',color:'#fbbf24',msg:'저도 그거 궁금했음'},{nick:'xx_cream',color:'#f87171',msg:'왠지 오타쿠장르 많이 파실거같아'}],
+  [{nick:'danbi_zip',color:'#2dd4bf',msg:'이 그림체면 자캐도 예쁠거같다'},{nick:'melon_soda',color:'#fb7185',msg:'[닉네임]님 자캐 있으시면 보여주세요..'},{nick:'ㅇㅇ',color:'#606060',msg:'자캐커뮤 얘기 나오면 재밌겠다'}],
+  [{nick:'gmming',color:'#fdba74',msg:'[닉네임]님 선 너무 취향이라 계속봄'},{nick:'lurker777',color:'#94a3b8',msg:'눈팅하다가 또 채팅치게됨'},{nick:'ㅇㅇ',color:'#606060',msg:'그림맛집'}],
+  [{nick:'mochi_99',color:'#f9a8d4',msg:'여기 팬들끼리 장르얘기하는것도 재밌음'},{nick:'cloverclip',color:'#c4b5fd',msg:'다들 은근 자캐커뮤 해봤을거같음'},{nick:'ㅇㅇ',color:'#606060',msg:'들켰다'}],
+  [{nick:'rinrin.zip',color:'#a5f3fc',msg:'[닉네임]님 진짜 방송 자주 켜주세요'},{nick:'saturnring',color:'#d1d5db',msg:'유튜브에 이런 작업방 드묾'},{nick:'ㅇㅇ',color:'#606060',msg:'맞아 오래보고싶음'}],
+  [{nick:'냥발바닥',color:'#fca5a5',msg:'[닉네임]님 그림 너무 예뻐서 말이 많아짐'},{nick:'하트누르고감',color:'#93c5fd',msg:'하트 천개 보내고싶음'},{nick:'ㅇㅇ',color:'#606060',msg:'이미 눌럿다'}],
+  [{nick:'덕질계정',color:'#f0abfc',msg:'이 분위기 약간 탐라 단톡같아서 좋음'},{nick:'연성보급필요',color:'#67e8f9',msg:'장르얘기 슬쩍 나오는거 좋다'},{nick:'ㅇㅇ',color:'#606060',msg:'오타쿠들 모임됨'}],
+  [{nick:'와이파이불안정',color:'#bef264',msg:'[닉네임]님 혹시 커뮤 뛰어보셨어요'},{nick:'마감도망자',color:'#fb7185',msg:'그림 느낌이 약간 자캐러 바이브임'},{nick:'ㅇㅇ',color:'#606060',msg:'ㄹㅇ 궁금'}],
+  [{nick:'rt하고옴',color:'#7dd3fc',msg:'틔터에 [닉네임]님 그림 자랑하고싶다'},{nick:'폼림열리면깨워줘',color:'#c7d2fe',msg:'계정 있으면 진짜 구독함'},{nick:'ㅇㅇ',color:'#606060',msg:'sns내놔'}],
+  [{nick:'찐따쿠',color:'#f9a8d4',msg:'저 이런 방송에서 장르얘기 조금씩 나오는거 좋아함'},{nick:'스밍돌리는중',color:'#86efac',msg:'맞아 너무 본격적이지 않고 슬쩍 나오는거'},{nick:'ㅇㅇ',color:'#606060',msg:'은근 좋음'}],
+  [{nick:'덕메구함',color:'#fdba74',msg:'혹시 여기 자캐커뮤 뛰는 사람 많나'},{nick:'오시사랑해',color:'#fca5a5',msg:'저요..'},{nick:'캡처갈김',color:'#93c5fd',msg:'나도요..'}],
+  [{nick:'zip_lover',color:'#c4b5fd',msg:'[닉네임]님 그림 보면 뭔가 세계관 궁금해짐'},{nick:'nnnn_ya',color:'#d9f99d',msg:'캐릭터 서사 있어보여'},{nick:'ㅇㅇ',color:'#606060',msg:'아 그말 뭔지 알아'}],
+  [{nick:'00년생덕후',color:'#fbcfe8',msg:'[닉네임]님 혹시 장르썰 풀어주실생각 없나요'},{nick:'햄스터젤리',color:'#99f6e4',msg:'그림만 봐도 취향 궁금함'},{nick:'ㅇㅇ',color:'#606060',msg:'듣고싶다'}],
+  [{nick:'구독갈김',color:'#fef08a',msg:'오늘도 [닉네임]님 그림 보러 왔어요'},{nick:'플리틀고옴',color:'#ddd6fe',msg:'저도요 ㅋㅋ 이제 습관됨'},{nick:'최애는장르를안가림',color:'#fdba74',msg:'진짜 자주 보고싶다'}]
+
 ];
 
 // ── 자동 채팅 풀 ──
@@ -575,6 +647,8 @@ const AUTO_MSGS=[
   '그림러 아니어도 보게 된다','그냥 보기만 해도 힐링됨','오늘 채팅창 사람 많아서 좋다','유입 더 늘었으면 좋겠다',
   '브러쉬 뭐 쓰는지 궁금','이 프로그램 뭔지 물어봐도 되나요','타블렛 뭐 쓰시는지 궁금해요','레이어 몇 개 쓰는지 궁금',
   '이런 방송은 진짜 오래 해줬으면','구독 누르고 감','좋아요도 눌렀어요','알림 설정까지 완료',
+  '[닉네임]님 sns 안하세요? 그림 더 보고싶다','[닉네임]님 틔터 하시면 진짜 팔로할텐데','[닉네임]님 자캐 있으세요? 궁금하다','[닉네임]님 커뮤 뛰셨으면 인기 많았을듯','[닉네임]님 무슨 장르 파는지 궁금해요',
+  '오늘 [닉네임]님 그림 너무 예쁘다','[닉네임]님 방송 자주 해주시면 안되나','팬들끼리 장르 얘기하는거 너무 재밌다','자캐커뮤 얘기 나오면 나 과몰입함','오늘도 [닉네임]님 그림 보러 옴',
   '오늘도 알고리즘 감사합니다','탐라친구 불러오고 싶다','친구한테 링크 보내도 되죠','유튜브 라이브 은근 숨은 맛집임',
   '이 부분 너무 좋아서 말 잃음','사람들 리액션 보는 맛도 있음','채팅창 다들 센스있네','다들 말투 웃겨서 계속 보게 됨'
 ];
@@ -595,7 +669,9 @@ const REPLY_MSGS=[
   '아 그거 진짜 꿀팁','오 저장해둬야겠다','그렇게 보니까 또 다르네','헐 전 몰랐어요','와 설명 듣고 보니 맞네',
   '그림 보다가 채팅도 보게됨','이 방 사람들 센스 있음','괜히 채팅 치게 되는 방송임','같이 있는 느낌이라 좋아요',
   '맞아요 혼자 작업하면 적막한데','저도 켜두고 그림중','같이 뭐 하는 기분 남','새벽에 이런 소란 좋음',
-  '트위터식 감탄 나옴','방금 오타쿠됨','최애 생김','심장아프다','아 너무좋네 진짜','저는 여기 눕겠습니다'
+  '트위터식 감탄 나옴','방금 오타쿠됨','최애 생김','심장아프다','아 너무좋네 진짜','저는 여기 눕겠습니다',
+  '[닉네임]님 그림 너무 예뻐요','[닉네임]님 혹시 sns 안하세요?','[닉네임]님 무슨장르 좋아하시는지 궁금','[닉네임]님 자캐 있으신가요','[닉네임]님 틔터 계정 있으면 팔로하고싶다',
+  '이분 자캐커뮤 뛰시면 잘하실듯','장르 얘기하다 밤새겠다','커뮤썰 풀어주시면 좋겠다','오타쿠 질문하고 싶어짐','자주 방송 켜주세요 [닉네임]님'
 ];
 
 const DONORS=['익명','구독갈김','탐라유입','rt하고옴','오시사랑해','덕질계정','캡처갈김','연성보급필요','fuyu_o0','danbi_zip','유튜브유입'];
@@ -672,13 +748,76 @@ const COWORK_SCENARIOS=[
 ];
 SCENARIOS.push(...COWORK_SCENARIOS);
 
+const PRAISE_TEMPLATES=[
+  '[닉네임]님 그림 넘예쁘다 진짜',
+  '[닉네임]님 선이 진짜 깔끔해요',
+  '[닉네임]님 색감 너무 취향임',
+  '[닉네임]님 그림 자주 보고싶다',
+  '[닉네임]님 그림체 너무 좋아요',
+  '[닉네임]님 손 진짜 빠르신듯',
+  '[닉네임]님 디테일 보는 맛 있다',
+  '[닉네임]님 작업과정 보는거 재밌어요',
+  '[닉네임]님 진짜 금손이네..',
+  '[닉네임]님 오늘 방송 레전드각',
+  '[닉네임]님 러프부터 벌써 좋다',
+  '[닉네임]님 이런 분위기 그림 너무 잘그리심'
+];
+const QUESTION_TEMPLATES=[
+  '[닉네임]님 혹시 sns 안하세요?',
+  '[닉네임]님 틔터 하시나요',
+  '[닉네임]님 무슨장르 좋아하세요?',
+  '[닉네임]님 자캐 있으신가요?',
+  '[닉네임]님 커뮤 자주 뛰세요?',
+  '[닉네임]님 무테 반무테 선호 궁금',
+  '[닉네임]님 작업속도 진짜 빠른편인가요?',
+  '[닉네임]님 보통 몇시간 작업하세요?',
+  '[닉네임]님 클튜 쓰세요 프로크리 쓰세요?',
+  '[닉네임]님 브러쉬 뭐쓰는지 궁금해요',
+  '[닉네임]님 작업할때 브금 뭐 들으세요?',
+  '[닉네임]님 그림공부는 어떤식으로 하셨어요?'
+];
+const TOPIC_TEMPLATES=[
+  '다들 무슨장르 파세요?',
+  '자캐커뮤 뛰는 사람 있나',
+  '요즘 탐라에 뭐 유행함?',
+  '다들 최애 장르 뭐에요',
+  '커뮤 뛰면 진짜 체력 갈리지 않나요',
+  '자캐 설정 푸는거 좋아하는 사람',
+  '썰푸는 방송도 재밌을듯',
+  '그림방송인데 오타쿠토크도 같이 하고싶음',
+  '요즘 브러쉬 유목민 된 사람 저요',
+  '다들 작업환경 어떻게 두세요'
+];
+const WORK_ANSWER_TEMPLATES=[
+  '전 클튜씀',
+  '저는 프로크리요',
+  '전 반무테 연습중',
+  '지금 원고식자 하는중',
+  '배경 밀린거 하고있어요',
+  '썸네일 수정중',
+  'SD낙서하는중 ㅋㅋ',
+  '크로키 돌리는중',
+  '선따기만 해도 오늘 성공',
+  '저는 자료 찾다가 또 시간감..'
+];
+const RANDOM_OPENERS=[
+  ['오늘도 같이 작업하러 옴','유입인데 분위기 좋네요','이 방송 틀어두면 손이 감'],
+  ['추천타고 왔는데 생각보다 넘 좋다','채팅창 속도 편안해서 좋음','같이 작업하는 느낌나네요'],
+  ['오늘 제목 좋다 ㅋㅋ','잔잔하게 보기 좋네요','채팅도 은근 웃김'],
+  ['유튜브가 추천 일 잘했다','이런 작업방송 찾고있었음','이따 저도 낙서해야지'],
+  ['와 벌써 켜져있네','오늘도 출석','같이 작업할 사람 많아보여서 좋다']
+];
+let shortScenarioStreak=0;
+let lastScenarioKind='';
+let activeTimers=[];
+
 
 const HUMAN_SUFFIXES=['..','...',' ㅋㅋ',' ㅠ',' ㅎㅎ','',''];
 const HUMAN_SHORTS=['ㅇㅇ','ㄹㅇ','헐','와','오','ㅋㅋ','ㅁㅊ','좋다'];
 function maybeTypo(msg){
   const swaps=[['정말','진짜'],['너무','넘'],['그래요','그여'],['있어요','잇어요'],['같아요','같아여'],['지금','짐'],['이거','이거'],['근데','근디']];
   let out=msg;
-  if(Math.random()<0.18){
+  if(Math.random()<0.24){
     const pair=swaps[Math.floor(Math.random()*swaps.length)];
     out=out.replace(pair[0],pair[1]);
   }
@@ -686,12 +825,91 @@ function maybeTypo(msg){
     const idx=Math.floor(Math.random()*(out.length-1));
     out=out.slice(0,idx)+out[idx+1]+out[idx]+out.slice(idx+2);
   }
-  if(Math.random()<0.15) out+=HUMAN_SUFFIXES[Math.floor(Math.random()*HUMAN_SUFFIXES.length)];
+  if(Math.random()<0.22) out+=HUMAN_SUFFIXES[Math.floor(Math.random()*HUMAN_SUFFIXES.length)];
   if(Math.random()<0.08) out=HUMAN_SHORTS[Math.floor(Math.random()*HUMAN_SHORTS.length)];
   return out;
 }
 function humanizeNick(name){
   return name;
+}
+function clearActiveTimers(){
+  activeTimers.forEach(function(t){clearTimeout(t);});
+  activeTimers=[];
+}
+function trackedTimeout(fn, ms){
+  var id=setTimeout(function(){
+    activeTimers=activeTimers.filter(function(x){return x!==id;});
+    fn();
+  }, ms);
+  activeTimers.push(id);
+  return id;
+}
+function randRange(min,max){ return Math.random()*(max-min)+min; }
+function pickWeightedScenario(){
+  var longOnes=SCENARIOS.filter(function(s){return s.length>=4;});
+  var shortOnes=SCENARIOS.filter(function(s){return s.length<4;});
+  var forceLong=shortScenarioStreak>=2;
+  var chooseLong=forceLong || Math.random()<0.62;
+  var source=chooseLong?longOnes:shortOnes;
+  if(!source.length) source=SCENARIOS;
+  var avail=source.filter(function(s){var idx=SCENARIOS.indexOf(s); return !usedScenarios.includes(idx);});
+  if(!avail.length){usedScenarios=[];avail=source.slice();}
+  var picked=avail[Math.floor(Math.random()*avail.length)];
+  var realIdx=SCENARIOS.indexOf(picked);
+  usedScenarios.push(realIdx);
+  shortScenarioStreak=picked.length<4 ? shortScenarioStreak+1 : 0;
+  lastScenarioKind=picked.length<4?'short':'long';
+  return picked;
+}
+function makeDirectQuestionLine(){
+  var bot=randomBot([]);
+  return {nick:bot.nick,color:bot.color,msg:randItem(QUESTION_TEMPLATES)};
+}
+function makePraiseLine(){
+  var bot=randomBot([]);
+  return {nick:bot.nick,color:bot.color,msg:randItem(PRAISE_TEMPLATES)};
+}
+function makeTopicLine(){
+  var bot=randomBot([]);
+  return {nick:bot.nick,color:bot.color,msg:randItem(TOPIC_TEMPLATES)};
+}
+function buildDynamicScenario(){
+  var used=[];
+  function fresh(){ var b=randomBot(used); used.push(b.nick); return b; }
+  var mode=Math.random();
+  var lines=[];
+  if(mode<0.28){
+    var a=fresh(), b=fresh(), c=fresh();
+    lines=[
+      {nick:a.nick,color:a.color,msg:randItem(PRAISE_TEMPLATES)},
+      {nick:b.nick,color:b.color,msg:randItem(QUESTION_TEMPLATES)},
+      {nick:c.nick,color:c.color,msg:randItem(REPLY_MSGS)}
+    ];
+  } else if(mode<0.56){
+    var a=fresh(), b=fresh(), c=fresh(), d=fresh();
+    lines=[
+      {nick:a.nick,color:a.color,msg:randItem(TOPIC_TEMPLATES)},
+      {nick:b.nick,color:b.color,msg:randItem(['저 자캐커뮤 얘기 좋아함','요즘 장르얘기 할 사람 없어서 반갑','탐라 얘기 시작하면 끝도없음','자캐 설정 푸는거 듣는거 좋아해요'])},
+      {nick:c.nick,color:c.color,msg:randItem(['전 지금 '+randItem(['자캐 러프','커뮤 프로필','원고','낙서'])+' 하는중','저도 같이 작업중 ㅋㅋ','작업하다가 채팅 보게됨'])},
+      {nick:d.nick,color:d.color,msg:randItem(REPLY_MSGS)}
+    ];
+  } else if(mode<0.8){
+    var a=fresh(), b=fresh(), c=fresh(), d=fresh(), e=fresh();
+    lines=[
+      {nick:a.nick,color:a.color,msg:randItem(['[닉네임]님 작업환경 궁금해요','[닉네임]님 브러쉬 세팅 궁금','[닉네임]님 앱 뭐 쓰시는지 궁금', randItem(QUESTION_TEMPLATES)])},
+      {nick:b.nick,color:b.color,msg:randItem(['저도 그거 궁금했음','아 그 질문 하고싶었음','ㄹㅇ 저도 묻고싶었어요'])},
+      {nick:c.nick,color:c.color,msg:randItem(WORK_ANSWER_TEMPLATES)},
+      {nick:d.nick,color:d.color,msg:randItem(PRAISE_TEMPLATES)},
+      {nick:e.nick,color:e.color,msg:randItem(REPLY_MSGS)}
+    ];
+  } else {
+    var opener=randItem(RANDOM_OPENERS).slice();
+    opener.forEach(function(msg){ var b=fresh(); lines.push({nick:b.nick,color:b.color,msg:msg}); });
+    lines.push(makePraiseLine(), makeDirectQuestionLine());
+  }
+  shortScenarioStreak=0;
+  lastScenarioKind='dynamic';
+  return lines;
 }
 function randomBot(ex){
   ex=ex||[];
@@ -704,6 +922,27 @@ function randomBot(ex){
   return b;
 }
 var $=function(id){return document.getElementById(id);};
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g,function(ch){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]);});
+}
+function getMyNick(){
+  return ($('nick-input')?.value || $('setup-nick')?.value || '나').trim() || '나';
+}
+function getStreamTitle(){
+  return ($('v-title')?.textContent || $('setup-title')?.value || '🎨 그림 라이브 방송 중').trim();
+}
+function applyNick(text){
+  const nick=getMyNick();
+  return String(text)
+    .replaceAll('[닉네임]', nick)
+    .replaceAll('[제목]', getStreamTitle());
+}
+function syncAvatar(){
+  const nick=getMyNick();
+  $('channel-avatar').textContent = nick.slice(0,1) || '나';
+}
+
 
 // ── 구독/좋아요 ──
 function toggleSub(){
@@ -742,7 +981,7 @@ function addSubAlert(nick){
 
 // ── 타이머 ──
 function renderTimer(){
-  timerSeconds=Math.floor((Date.now()-pageOpenedAt)/1000);
+  timerSeconds=pageOpenedAt?Math.floor((Date.now()-pageOpenedAt)/1000):0;
   var h=Math.floor(timerSeconds/3600),m=Math.floor((timerSeconds%3600)/60),s=timerSeconds%60;
   $('timer-display').textContent=(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
 }
@@ -750,6 +989,7 @@ function startTimer(){
   if(timerRunning) return; timerRunning=true;
   $('live-dot').style.background='#ff0000';
   studyStartTime=Date.now();
+  pageOpenedAt=Date.now();
   renderTimer();
   timerInterval=setInterval(function(){
     renderTimer();
@@ -776,38 +1016,12 @@ function stopTimer(){
 // ── addMsg 계열 ──
 function addMsg(nick,text,isMe,isSystem,color){
   isMe=isMe||false;isSystem=isSystem||false;color=color||'#aaa';
+  text=applyNick(text);
   var area=$('messages'),div=document.createElement('div');
   div.className='msg'+(isMe?' me':'')+(isSystem?' system':'');
   var nc=isMe?'#065fd4':(isSystem?'#aaa':color);
   var badge=BADGES[nick]?'<span class="badge">'+BADGES[nick]+'</span>':'';
-  div.innerHTML=badge+'<span class="nick" style="color:'+nc+'">'+nick+'</span><span class="txt">'+text+'</span>';
-  area.appendChild(div);area.scrollTop=area.scrollHeight;
-  if(!isMe&&!isSystem){recentMsgs.push({nick:nick,text:text});if(recentMsgs.length>10)recentMsgs.shift();}
-}
-function addEnter(nick){
-  var area=$('messages'),div=document.createElement('div');
-  div.className='enter-msg';div.textContent=nick+' '+randItem(ENTER_MSGS);
-  area.appendChild(div);area.scrollTop=area.scrollHeight;
-}
-function addExit(nick){
-  var area=$('messages'),div=document.createElement('div');
-  div.className='enter-msg';div.style.color='#bbb';div.textContent=nick+' '+randItem(EXIT_MSGS);
-  area.appendChild(div);area.scrollTop=area.scrollHeight;
-}
-function addNotice(text){
-  var area=$('messages'),div=document.createElement('div');
-  div.className='notice-msg';div.textContent=text;
-  area.appendChild(div);area.scrollTop=area.scrollHeight;
-}
-function addAchievement(text){
-  var area=$('messages'),div=document.createElement('div');
-  div.className='achievement-msg';div.textContent=text;
-  area.appendChild(div);area.scrollTop=area.scrollHeight;
-}
-function addTyping(id,nick,color){
-  var area=$('messages'),div=document.createElement('div');
-  div.id='typ_'+id;div.className='typing-row';
-  div.innerHTML='<span class="typing-name" style="color:'+color+'">'+nick+'</span><div class="dots"><span></span><span></span><span></span></div>';
+  div.innerHTML=badge+'<span class="nick" style="color:'+nc+'">'+escapeHtml(nick)+'</span><span class="txt">'+escapeHtml(text)+'</span>';
   area.appendChild(div);area.scrollTop=area.scrollHeight;
 }
 function removeTyping(id){var el=$('typ_'+id);if(el)el.remove();}
@@ -878,18 +1092,25 @@ async function fireOne(msgPool,exclude){
 
 // ── 시나리오 ──
 async function playScenario(){
-  var avail=SCENARIOS.filter(function(_,i){return !usedScenarios.includes(i);});
-  if(!avail.length){usedScenarios=[];avail=SCENARIOS;}
-  var idx=Math.floor(Math.random()*avail.length),realIdx=SCENARIOS.indexOf(avail[idx]);
-  usedScenarios.push(realIdx);
-  var lines=avail[idx];
+  var lines;
+  if(Math.random()<0.38){
+    lines=buildDynamicScenario();
+  } else {
+    lines=pickWeightedScenario();
+  }
   for(var i=0;i<lines.length;i++){
     var line=lines[i],id='s'+Date.now()+i;
-    await new Promise(function(r){setTimeout(r,Math.random()*3600+1800);});
+    var gap=lines.length>=5?randRange(2200,4300):randRange(1500,3200);
+    if(i===0 && Math.random()<0.35) gap+=randRange(1200,2600);
+    await new Promise(function(r){setTimeout(r,gap);});
     addTyping(id,line.nick,line.color);
-    await new Promise(function(r){setTimeout(r,Math.random()*1200+700);});
+    await new Promise(function(r){setTimeout(r,randRange(650,1500));});
     removeTyping(id);
     addMsg(line.nick,maybeTypo(line.msg),false,false,line.color);
+    if(Math.random()<0.12 && i<lines.length-1){
+      await new Promise(function(r){setTimeout(r,randRange(350,950));});
+      addMsg(line.nick,randItem(SHORT_MSGS),false,false,line.color);
+    }
   }
 }
 
@@ -898,7 +1119,7 @@ function scheduleAuto(){
   setTimeout(async function(){
     await fireOne(AUTO_MSGS,[]);
     scheduleAuto();
-  },Math.random()*12000+9000);
+  },Math.random()*14000+10000);
 }
 function scheduleBurst(){
   setTimeout(async function(){
@@ -908,13 +1129,13 @@ function scheduleBurst(){
       var nick=await fireOne(AUTO_MSGS,used);used.push(nick);
     }
     scheduleBurst();
-  },Math.random()*36000+32000);
+  },Math.random()*52000+42000);
 }
 function scheduleScenario(){
   setTimeout(async function(){
     await playScenario();
     scheduleScenario();
-  },Math.random()*110000+120000);
+  },Math.random()*85000+65000);
 }
 function scheduleDonation(){
   setTimeout(function(){autoFakeDonation();scheduleDonation();},Math.random()*200000+120000);
@@ -1235,37 +1456,74 @@ $('heart-btn').onclick=sendHeart;
 
 // ── 비밀번호 게이트 ──
 const ENTRY_PASSWORD='shambi';
+function showSetupGate(){
+  $('password-gate').style.display='none';
+  $('setup-gate').style.display='flex';
+  $('setup-nick').value=getMyNick();
+  $('setup-title').value=getStreamTitle();
+  setTimeout(function(){$('setup-nick').focus();$('setup-nick').select();},50);
+}
 function unlockGate(){
   document.body.classList.remove('locked');
+  $('setup-gate').style.display='none';
   $('password-gate').style.display='none';
   $('password-input').value='';
   $('password-error').textContent='';
   sessionStorage.setItem('drawing_live_gate','ok');
 }
+function applySetupValues(){
+  const nick=($('setup-nick').value||'').trim() || '나';
+  const title=($('setup-title').value||'').trim() || '🎨 그림 라이브 방송 중';
+  $('nick-input').value=nick;
+  $('v-title').textContent=title;
+  $('channel-name').textContent=nick;
+  syncAvatar();
+}
+function startChatExperience(){
+  if(chatStarted) return;
+  chatStarted=true;
+  startTimer();
+  updateVC();
+  clearActiveTimers();
+  $('messages').innerHTML='';
+  initGraph();
+  scheduleAuto(); scheduleBurst(); scheduleScenario(); scheduleDonation(); scheduleEnterExit(); scheduleNotice(); scheduleSubAlert();
+  scheduleEventBanner(); scheduleVip(); scheduleLikeToast(); scheduleChatBurst();
+
+  var opener=randItem(RANDOM_OPENERS).slice();
+  var used=[];
+  opener.forEach(function(msg, idx){
+    trackedTimeout(function(){
+      var bot=randomBot(used); used.push(bot.nick);
+      addMsg(bot.nick,msg,false,false,bot.color);
+    }, 1200 + idx*randRange(1800,3200));
+  });
+
+  trackedTimeout(function(){ var b=randomBot([]); addMsg(b.nick, maybeTypo(randItem(PRAISE_TEMPLATES)), false, false, b.color); }, randRange(9000,14000));
+  trackedTimeout(function(){ var b=randomBot([]); addMsg(b.nick, maybeTypo(randItem(QUESTION_TEMPLATES)), false,false,b.color); }, randRange(14000,22000));
+  trackedTimeout(function(){ var b=randomBot([]); addMsg(b.nick, maybeTypo(randItem(TOPIC_TEMPLATES)), false,false,b.color); }, randRange(21000,32000));
+  trackedTimeout(function(){ addNotice(randItem(['📌 천천히 같이 작업하는 방송이에요 ✍️','📌 질문은 편하게 남겨주세요','📌 오늘도 잔잔하게 같이 그려봐요'])); }, randRange(26000,38000));
+  trackedTimeout(function(){ playScenario(); }, randRange(36000,52000));
+}
 $('password-form').onsubmit=function(e){
   e.preventDefault();
-  if(($('password-input').value||'').trim()===ENTRY_PASSWORD){unlockGate();}
+  if(($('password-input').value||'').trim()===ENTRY_PASSWORD){showSetupGate();}
   else{$('password-error').textContent='비밀번호가 맞지 않아요.';$('password-input').select();}
 };
+$('setup-form').onsubmit=function(e){
+  e.preventDefault();
+  applySetupValues();
+  unlockGate();
+  startChatExperience();
+};
+$('v-title').addEventListener('input', function(){ $('setup-title').value=$('v-title').textContent.trim(); });
+$('nick-input').addEventListener('input', function(){ $('setup-nick').value=$('nick-input').value.trim(); $('channel-name').textContent=getMyNick(); syncAvatar(); });
 
 // ── 시작 ──
-startTimer();
 renderTimer();
-scheduleAuto();scheduleBurst();scheduleScenario();
-scheduleDonation();scheduleEnterExit();scheduleNotice();scheduleSubAlert();
-scheduleEventBanner();scheduleVip();scheduleLikeToast();scheduleChatBurst();
-setTimeout(initGraph, 500);
-
-if(sessionStorage.getItem('drawing_live_gate')==='ok') unlockGate();
+syncAvatar();
+if(sessionStorage.getItem('drawing_live_gate')==='ok') showSetupGate();
 else setTimeout(function(){$('password-input').focus();},120);
-
-setTimeout(function(){addMsg('fuyu_o0',maybeTypo('오늘도 같이 작업하러 왔어요'),false,false,'#c084fc');},2200);
-setTimeout(function(){addMsg('danbi_zip',maybeTypo('알림 뜨자마자 켜놓고 선따는중 ㅋㅋ'),false,false,'#2dd4bf');},5200);
-setTimeout(function(){addMsg('탐라에서왔어요',maybeTypo('유입인데 작업방 분위기 좋네요'),false,false,'#7dd3fc');},9800);
-setTimeout(function(){addEnter('추천타고옴');},13000);
-setTimeout(function(){addMsg('추천타고옴',maybeTypo('저도 지금 클튜 켜고 같이 작업중이에요 ㅎㅎ'),false,false,'#fef08a');},16000);
-setTimeout(function(){addNotice('📌 잔잔하게 같이 작업하는 방송이에요. 채팅은 천천히 올라옵니다 ✍️');},26000);
-setTimeout(function(){playScenario();},120000);
 </script>
 </body>
 </html>
